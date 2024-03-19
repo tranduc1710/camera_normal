@@ -39,12 +39,13 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             FilledButton(
-              onPressed: () {
-                Navigator.of(context).push(
+              onPressed: () async {
+                final result = await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const CameraNormal(),
                   ),
                 );
+                print(result);
               },
               child: const Text('Camera'),
             ),

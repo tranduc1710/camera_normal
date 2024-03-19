@@ -1,8 +1,13 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:synchronized/synchronized.dart';
 
 class CameraNormal extends StatefulWidget {
   const CameraNormal({super.key});
@@ -11,10 +16,9 @@ class CameraNormal extends StatefulWidget {
   _CameraNormalState createState() => _CameraNormalState();
 }
 
-class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver {
+class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClientMixin {
   late List<CameraDescription> _cameras;
   CameraController? controller;
-  var lstPathsPhoto = ValueNotifier<List<AssetEntity>>([]);
   final scaffoldState = GlobalKey<ScaffoldState>();
 
   final notiBtnTake = ValueNotifier<bool>(false);
@@ -22,14 +26,7 @@ class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver
 
   var isBackCamera = true;
   var contentError = '';
-  final limitPhoto = 40;
-  var page = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    getPhoto();
-  }
+  var pathSaveFile = '';
 
   @override
   void dispose() {
@@ -81,8 +78,11 @@ class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver
                   child: SizedBox(
                     width: size.width,
                     height: size.height,
-                    child: CameraPreview(
-                      controller!,
+                    child: InkWell(
+                      onTapUp: onFocusCamera,
+                      child: CameraPreview(
+                        controller!,
+                      ),
                     ),
                   ),
                 ),
@@ -134,9 +134,6 @@ class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver
     return Container(
       width: size.width,
       color: Colors.black26,
-      padding: EdgeInsets.only(
-        top: padding.top,
-      ),
       child: Row(
         children: [
           IconButton(
@@ -252,11 +249,22 @@ class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver
       final xFile = await controller?.takePicture();
       if (xFile != null) {
         notiPathRecent.value = xFile.path;
-        lstPathsPhoto.value = await PhotoManager.getAssetListPaged(
-          page: page,
-          pageCount: limitPhoto,
-          type: RequestType.image,
+        final fileSave = await File(pathSaveFile + xFile.path.split('/').last).writeAsBytes(
+          await xFile.readAsBytes(),
+          flush: true,
         );
+        notiBtnTake.value = false;
+        if (mounted) {
+          final result = await showDialog(
+            context: context,
+            builder: (context) => dialogAskPhoto(fileSave),
+          );
+
+          if (result == true && mounted) {
+            Navigator.pop(context, fileSave);
+          }
+        }
+        return;
       }
     } catch (e, s) {
       print(e);
@@ -278,23 +286,32 @@ class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver
 
   void onShowRecentImage(Size size) async {
     final scrollController = ScrollController();
+    var isLimitPhoto = false;
+    const limit = 30;
+    List<File> listPhoto = [];
+    final streamListPhoto = StreamController<List<File>>();
+    final lock = Lock();
+
+    getListPhoto(page: 0, limit: limit).then((value) {
+      listPhoto.addAll(value);
+      streamListPhoto.sink.add(listPhoto);
+    });
+
     scrollController.addListener(() async {
-      if (scrollController.position.maxScrollExtent / scrollController.position.pixels <= .3) {
-        page++;
-        final listGet = await PhotoManager.getAssetListPaged(
-          page: page,
-          pageCount: limitPhoto,
-          type: RequestType.image,
-          filterOption: FilterOptionGroup(
-            orders: [
-              const OrderOption(
-                asc: false,
-                type: OrderOptionType.createDate,
-              ),
-            ],
-          ),
-        );
-        lstPathsPhoto.value.addAll(listGet);
+      final isGetMore = scrollController.position.maxScrollExtent - scrollController.position.pixels <= 100;
+
+      if (isGetMore) {
+        lock.synchronized(() async {
+          if (isLimitPhoto) return;
+          final listGet = await getListPhoto(page: listPhoto.length ~/ limit, limit: limit);
+          if (streamListPhoto.isClosed) return;
+          if (listGet.isEmpty) {
+            isLimitPhoto = true;
+            return;
+          }
+          listPhoto.addAll(listGet);
+          streamListPhoto.sink.add(listPhoto);
+        });
       }
     });
 
@@ -304,9 +321,9 @@ class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver
             children: [
               Center(
                 child: Container(
-                  height: 5,
+                  height: 4,
                   width: size.width * .2,
-                  margin: const EdgeInsets.symmetric(vertical: 10),
+                  margin: const EdgeInsets.only(top: 10, bottom: 15),
                   decoration: BoxDecoration(
                     color: Colors.grey,
                     borderRadius: BorderRadius.circular(10),
@@ -314,39 +331,67 @@ class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver
                 ),
               ),
               Expanded(
-                child: ValueListenableBuilder(
-                    valueListenable: lstPathsPhoto,
-                    builder: (context, list, child) {
-                      return GridView(
-                        controller: scrollController,
-                        padding: const EdgeInsets.only(
-                          bottom: 10,
-                          left: 15,
-                          right: 15,
-                        ),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          mainAxisSpacing: 3,
-                          crossAxisSpacing: 3,
-                        ),
-                        children: List.generate(
-                          list.length,
-                          (index) => FutureBuilder(
-                            future: list[index].file,
-                            builder: (context, snapshot) {
-                              if (snapshot.data == null) return const Placeholder();
-                              return ClipRRect(
-                                borderRadius: BorderRadius.circular(7),
-                                child: Image.file(
-                                  snapshot.data!,
-                                  fit: BoxFit.cover,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                child: StreamBuilder(
+                  stream: streamListPhoto.stream,
+                  initialData: listPhoto,
+                  builder: (context, snapshot) {
+                    if (snapshot.data!.isEmpty && isLimitPhoto) {
+                      return const Center(
+                        child: Text('Không có ảnh nào trong thư viện'),
                       );
-                    }),
+                    }
+
+                    return GridView.count(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 3,
+                      crossAxisSpacing: 3,
+                      controller: scrollController,
+                      padding: const EdgeInsets.only(
+                        bottom: 10,
+                        left: 15,
+                        right: 15,
+                      ),
+                      children: List.generate(
+                        snapshot.data!.length +
+                            (isLimitPhoto
+                                ? 0
+                                : snapshot.data!.isEmpty
+                                    ? 18
+                                    : 9),
+                        (index) {
+                          if (index >= snapshot.data!.length) return const Placeholder();
+
+                          return InkWell(
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.pop(context, snapshot.data![index]);
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(7),
+                              child: FutureBuilder(
+                                future: compute(
+                                  (message) => Image.file(
+                                    message,
+                                    fit: BoxFit.cover,
+                                    repeat: ImageRepeat.noRepeat,
+                                    scale: .1,
+                                  ),
+                                  snapshot.data![index],
+                                ),
+                                builder: (context, snapshot) {
+                                  if (snapshot.data == null) {
+                                    return const SizedBox();
+                                  }
+                                  return snapshot.data!;
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -358,12 +403,15 @@ class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver
         .closed;
 
     scrollController.dispose();
+    streamListPhoto.close();
   }
 
   Future<void> intCamera([CameraDescription? description]) async {
     if (controller?.value.isInitialized ?? false) return;
     _cameras = await availableCameras();
     await PhotoManager.clearFileCache();
+    await getPhoto();
+    pathSaveFile = (await getApplicationDocumentsDirectory()).path;
     controller = CameraController(
       description ?? _cameras[0],
       ResolutionPreset.max,
@@ -371,34 +419,18 @@ class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver
       imageFormatGroup: ImageFormatGroup.jpeg,
     );
     await controller?.initialize();
-    if (!mounted) {
-      return;
-    }
+    controller?.setDescription(description ?? _cameras[0]);
+
     return;
   }
 
-  void getPhoto() async {
+  Future<void> getPhoto() async {
     final resultPermission = await getPermissionImage();
 
     if (!resultPermission) return;
 
-    lstPathsPhoto.value = await PhotoManager.getAssetListPaged(
-      page: page,
-      pageCount: limitPhoto,
-      type: RequestType.image,
-      filterOption: FilterOptionGroup(
-        orders: [
-          const OrderOption(
-            asc: false,
-            type: OrderOptionType.createDate,
-          ),
-        ],
-      ),
-    );
-    final path = await lstPathsPhoto.value.firstOrNull?.file;
-    notiPathRecent.value = path?.path ?? '';
-
-    print(lstPathsPhoto.value.length);
+    final lstPhoto = await getListPhoto();
+    notiPathRecent.value = lstPhoto.firstOrNull?.path ?? '';
   }
 
   Future<bool> getPermissionImage() async {
@@ -411,5 +443,141 @@ class _CameraNormalState extends State<CameraNormal> with WidgetsBindingObserver
     // Limited(iOS) or Rejected, use `==` for more precise judgements.
     // You can call `PhotoManager.openSetting()` to open settings for further steps.
     return false;
+  }
+
+  Future<List<File>> getListPhoto({int page = 0, int limit = 1}) async {
+    final lstFile = <File>[];
+
+    final lstPhoto = await PhotoManager.getAssetListPaged(
+      page: page,
+      pageCount: limit,
+      type: RequestType.image,
+      filterOption: FilterOptionGroup(
+        orders: [
+          const OrderOption(
+            asc: false,
+            type: OrderOptionType.createDate,
+          ),
+        ],
+      ),
+    );
+
+    final token = RootIsolateToken.instance;
+
+    for (final item in lstPhoto) {
+      final file = await compute(
+        (token) async {
+          BackgroundIsolateBinaryMessenger.ensureInitialized(token!);
+          return await item.file;
+        },
+        token,
+      );
+      if (file != null) {
+        lstFile.add(file);
+      }
+    }
+
+    return lstFile;
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+
+  Widget dialogAskPhoto(File fileSave) {
+    return Dialog(
+      child: Material(
+        borderRadius: BorderRadius.circular(10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 8.0),
+              child: Text(
+                'Thông báo',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                'Xác nhận chọn ảnh này?',
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  width: 1,
+                  color: Colors.grey.withOpacity(.2),
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(
+                  fileSave,
+                  height: 250,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    child: FilledButton(
+                      style: const ButtonStyle(
+                        backgroundColor: MaterialStatePropertyAll(Colors.white),
+                        foregroundColor: MaterialStatePropertyAll(Colors.grey),
+                        shape: MaterialStatePropertyAll(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(50)),
+                            side: BorderSide(width: 1, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Huỷ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text(
+                        'Đồng ý',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 15),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void onFocusCamera(TapUpDetails details) {
+    final dx = details.localPosition.dx / details.globalPosition.dx;
+    final dy = details.localPosition.dy / details.globalPosition.dy;
+    controller?.setFocusPoint(Offset(dx, dy));
   }
 }
