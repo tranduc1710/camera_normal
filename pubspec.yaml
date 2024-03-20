@@ -1,7 +1,18 @@
 name: camera_normal
-description: "A new Flutter project."
+description: "Project with camera default"
+repository: https://github.com/tranduc1710/camera_custom
+issue_tracker: https://github.com/tranduc1710/camera_custom/issues
+version: 1.0.0+5
 
-version: 1.0.0+1
+platforms:
+  android:
+  ios:
+
+topics:
+  - camera
+
+funding:
+  - https://github.com/sponsors/tranduc1710
 
 environment:
   sdk: '>=3.3.0 <4.0.0'

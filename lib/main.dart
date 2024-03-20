@@ -1,5 +1,6 @@
-import 'package:camera_normal/src/camera_normal.dart';
 import 'package:flutter/material.dart';
+
+import 'camera_custom.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo Camera',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+        useMaterial3: false,
       ),
       home: const MyHomePage(),
     );
@@ -40,11 +41,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             FilledButton(
               onPressed: () async {
-                final result = await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const CameraNormal(),
-                  ),
-                );
+                final result = await const CameraNormal().show(context);
                 print(result);
               },
               child: const Text('Camera'),
