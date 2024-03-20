@@ -2,7 +2,7 @@ name: camera_normal
 description: "Project with camera default"
 repository: https://github.com/tranduc1710/camera_custom
 issue_tracker: https://github.com/tranduc1710/camera_custom/issues
-version: 1.0.0+5
+version: 1.0.0+6
 
 platforms:
   android:
