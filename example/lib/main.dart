@@ -1,6 +1,5 @@
+import 'package:camera_normal/camera_custom.dart';
 import 'package:flutter/material.dart';
-
-import 'camera_custom.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,10 +40,17 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             FilledButton(
               onPressed: () async {
-                final result = await const CameraNormal().show(context);
+                final result = await CameraNormal().show(context);
                 print(result);
               },
-              child: const Text('Camera'),
+              child: const Text('Camera normal'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final result = await CameraQr().show(context);
+                print(result);
+              },
+              child: const Text('Camera QR'),
             ),
           ],
         ),

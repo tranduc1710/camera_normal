@@ -1,9 +1,15 @@
 part of '../camera_custom.dart';
 
 class CameraNormal extends StatefulWidget {
-  const CameraNormal({super.key});
+  CameraLanguage language = CameraLanguage();
 
-  Future<String?> show(BuildContext context) async {
+  CameraNormal({super.key});
+
+  Future<String?> show(BuildContext context, [CameraLanguage? language]) async {
+    if (language != null) {
+      this.language = language;
+    }
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -21,7 +27,7 @@ class CameraNormal extends StatefulWidget {
   _CameraNormalState createState() => _CameraNormalState();
 }
 
-class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClientMixin {
+class _CameraNormalState extends State<CameraNormal> {
   late List<CameraDescription> _cameras;
   CameraController? controller;
   final scaffoldState = GlobalKey<ScaffoldState>();
@@ -30,7 +36,7 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
   final notiBtnTake = ValueNotifier<bool>(false);
   final notiPathRecent = ValueNotifier('');
 
-  var flashMode = FlashMode.auto;
+  var notiFlashMode = ValueNotifier(FlashMode.auto);
   var isBackCamera = true;
   var contentError = '';
   var pathSaveFile = '';
@@ -38,6 +44,12 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
   final limit = 30;
 
   List<File> listPhoto = [];
+
+  @override
+  void initState() {
+    super.initState();
+    initCamera();
+  }
 
   @override
   void dispose() {
@@ -50,75 +62,36 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     final size = MediaQuery.of(context).size;
     final padding = MediaQuery.of(context).padding;
 
-    return FutureBuilder(
-      future: initCamera(size),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return buildLoadingCamera();
-        }
-        if (contentError.isNotEmpty) {
-          return buildError();
-        }
-        return Scaffold(
-          key: scaffoldState,
-          backgroundColor: Colors.black,
-          body: Column(
-            children: [
-              buildTop(size, padding),
-              Expanded(
-                child: Stack(
-                  children: [
-                    Positioned(
-                      width: size.width,
-                      top: 0,
-                      child: CameraPreview(
-                        controller!,
-                        child: GestureDetector(
-                          onTapDown: (details) => onFocusCamera(size, details),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      width: size.width,
-                      bottom: 0,
-                      child: buildBottom(size, padding),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Scaffold buildError() {
     return Scaffold(
-      body: Center(
-        child: Text(
-          contentError,
-          style: const TextStyle(
-            color: Colors.red,
+      key: scaffoldState,
+      backgroundColor: Colors.black,
+      body: Column(
+        children: [
+          buildTop(size, padding),
+          Expanded(
+            child: Stack(
+              children: [
+                CameraView(
+                  onInit: (controller) {
+                    this.controller = controller;
+                  },
+                  language: widget.language,
+                  child: GestureDetector(
+                    onTapDown: (details) => onFocusCamera(size, details),
+                  ),
+                ),
+                Positioned(
+                  width: size.width,
+                  bottom: 0,
+                  child: buildBottom(size, padding),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Scaffold buildLoadingCamera() {
-    return const Scaffold(
-      body: Center(
-        child: Text(
-          'Camera đang khởi chạy',
-          style: TextStyle(
-            color: Colors.red,
-          ),
-        ),
+        ],
       ),
     );
   }
@@ -141,11 +114,30 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
           const Spacer(),
           IconButton(
             onPressed: setFlashMode,
-            icon: const Icon(
-              Icons.flash_auto,
-              color: Colors.white,
-              size: 20,
-            ),
+            icon: ValueListenableBuilder(
+                valueListenable: notiFlashMode,
+                builder: (context, value, child) {
+                  switch (value) {
+                    case FlashMode.always:
+                      return const Icon(
+                        Icons.flash_on,
+                        color: Colors.white,
+                        size: 20,
+                      );
+                    case FlashMode.off:
+                      return const Icon(
+                        Icons.flash_off,
+                        color: Colors.white,
+                        size: 20,
+                      );
+                    default:
+                      return const Icon(
+                        Icons.flash_auto,
+                        color: Colors.white,
+                        size: 20,
+                      );
+                  }
+                }),
           ),
         ],
       ),
@@ -265,9 +257,6 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
       final xFile = await controller?.takePicture();
       await controller?.pausePreview();
       if (xFile != null) {
-        // final path = pathSaveFile + xFile.path.split('/').last;
-        // await xFile.saveTo(path);
-        // notiPathRecent.value = xFile.path;
         notiBtnTake.value = false;
         if (mounted) {
           final result = await dialogAskPhoto(xFile.path, size);
@@ -354,8 +343,8 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
                     builder: (context, snapshot) {
                       print(snapshot.data?.length);
                       if (snapshot.data!.isEmpty && isLimitPhoto) {
-                        return const Center(
-                          child: Text('Không có ảnh nào trong thư viện'),
+                        return Center(
+                          child: Text(widget.language.noPhotoOnGallery),
                         );
                       }
 
@@ -424,21 +413,11 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
     streamList.close();
   }
 
-  Future<void> initCamera(Size size, [CameraDescription? description]) async {
-    if (controller?.value.isInitialized ?? false) return;
+  Future<void> initCamera([CameraDescription? description]) async {
     _cameras = await availableCameras();
     await PhotoManager.clearFileCache();
     await getPhoto();
     pathSaveFile = (await getApplicationDocumentsDirectory()).path;
-    controller = CameraController(
-      description ?? _cameras[0],
-      ResolutionPreset.ultraHigh,
-      enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.jpeg,
-    );
-    await controller?.initialize();
-    controller?.setDescription(description ?? _cameras[0]);
-    controller?.setFlashMode(flashMode);
 
     getListPhoto(page: 0, limit: limit).listen((value) {
       if (streamListPhoto.isClosed) return;
@@ -521,9 +500,6 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
     isolate.kill(priority: Isolate.immediate);
   }
 
-  @override
-  bool get wantKeepAlive => true;
-
   Future dialogAskPhoto(String pathFile, Size size) async {
     return await showDialog(
       context: context,
@@ -547,13 +523,6 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
                   vertical: 10,
                 ),
                 width: double.infinity,
-                // decoration: BoxDecoration(
-                //   border: Border.all(
-                //     width: 1,
-                //     color: Colors.grey.withOpacity(.2),
-                //   ),
-                //   borderRadius: BorderRadius.circular(10),
-                // ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: InteractiveViewer(
@@ -565,13 +534,14 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
                   ),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(top: 10.0, bottom: 10),
+              Padding(
+                padding: const EdgeInsets.only(top: 10.0, bottom: 10),
                 child: Text(
-                  'Xác nhận chọn ảnh này?',
-                  style: TextStyle(
-                    color: Colors.black,
-                  ),
+                  widget.language.confirmChoice,
+                  style: widget.language.styleConfirmChoice ??
+                      const TextStyle(
+                        color: Colors.black,
+                      ),
                 ),
               ),
               Row(
@@ -592,9 +562,9 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
                           ),
                         ),
                         onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          'Huỷ',
-                          style: TextStyle(
+                        child: Text(
+                          widget.language.cancel,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -606,9 +576,9 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                       child: FilledButton(
                         onPressed: () => Navigator.of(context).pop(pathFile),
-                        child: const Text(
-                          'Đồng ý',
-                          style: TextStyle(
+                        child: Text(
+                          widget.language.confirm,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -633,13 +603,13 @@ class _CameraNormalState extends State<CameraNormal> with AutomaticKeepAliveClie
   }
 
   void setFlashMode() {
-    if (flashMode == FlashMode.off) {
-      flashMode = FlashMode.auto;
-    } else if (flashMode == FlashMode.auto) {
-      flashMode = FlashMode.always;
+    if (notiFlashMode.value == FlashMode.off) {
+      notiFlashMode.value = FlashMode.auto;
+    } else if (notiFlashMode.value == FlashMode.auto) {
+      notiFlashMode.value = FlashMode.always;
     } else {
-      flashMode = FlashMode.off;
+      notiFlashMode.value = FlashMode.off;
     }
-    controller?.setFlashMode(flashMode);
+    controller?.setFlashMode(notiFlashMode.value);
   }
 }

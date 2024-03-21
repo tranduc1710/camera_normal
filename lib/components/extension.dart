@@ -1,6 +1,6 @@
 part of '../camera_custom.dart';
 
-extension ExWidget on Widget {
+extension _ExWidget on Widget {
   Widget shimmer(
     Size size,
     bool loading, {
