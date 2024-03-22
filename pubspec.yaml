@@ -2,7 +2,7 @@ name: camera_normal
 description: "Integrates functions such as camera, photos from gallery, QR scanning"
 repository: https://github.com/tranduc1710/camera_custom
 issue_tracker: https://github.com/tranduc1710/camera_custom/issues
-version: 1.0.0+7
+version: 1.0.2+8
 
 platforms:
   android:

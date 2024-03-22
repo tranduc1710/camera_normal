@@ -31,7 +31,6 @@ class _CameraNormalState extends State<CameraNormal> {
   late List<CameraDescription> _cameras;
   CameraController? controller;
   final scaffoldState = GlobalKey<ScaffoldState>();
-  final streamListPhoto = StreamController<List<File>>();
 
   final notiBtnTake = ValueNotifier<bool>(false);
   final notiPathRecent = ValueNotifier('');
@@ -40,8 +39,6 @@ class _CameraNormalState extends State<CameraNormal> {
   var isBackCamera = true;
   var contentError = '';
   var pathSaveFile = '';
-  var isLimitPhoto = false;
-  final limit = 30;
 
   List<File> listPhoto = [];
 
@@ -56,7 +53,8 @@ class _CameraNormalState extends State<CameraNormal> {
     super.dispose();
     controller?.dispose();
     notiBtnTake.dispose();
-    streamListPhoto.close();
+    notiPathRecent.dispose();
+    notiFlashMode.dispose();
     PhotoManager.clearFileCache();
   }
 
@@ -70,7 +68,7 @@ class _CameraNormalState extends State<CameraNormal> {
       backgroundColor: Colors.black,
       body: Column(
         children: [
-          buildTop(size, padding),
+          buildTop(context, size, padding),
           Expanded(
             child: Stack(
               children: [
@@ -86,7 +84,7 @@ class _CameraNormalState extends State<CameraNormal> {
                 Positioned(
                   width: size.width,
                   bottom: 0,
-                  child: buildBottom(size, padding),
+                  child: buildBottom(context, size, padding),
                 ),
               ],
             ),
@@ -96,7 +94,7 @@ class _CameraNormalState extends State<CameraNormal> {
     );
   }
 
-  Container buildTop(Size size, EdgeInsets padding) {
+  Container buildTop(BuildContext context, Size size, EdgeInsets padding) {
     return Container(
       width: size.width,
       padding: EdgeInsets.only(top: padding.top),
@@ -144,7 +142,7 @@ class _CameraNormalState extends State<CameraNormal> {
     );
   }
 
-  Container buildBottom(Size size, EdgeInsets padding) {
+  Container buildBottom(BuildContext context, Size size, EdgeInsets padding) {
     const sizeBtn = 55.0;
 
     return Container(
@@ -158,7 +156,7 @@ class _CameraNormalState extends State<CameraNormal> {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () => onShowRecentImage(size),
+              onTap: () => onShowRecentImage(context, size),
               child: Center(
                 child: Container(
                   width: sizeBtn,
@@ -197,7 +195,7 @@ class _CameraNormalState extends State<CameraNormal> {
           Expanded(
             child: Center(
               child: GestureDetector(
-                onTap: () => onTakePicture(size),
+                onTap: () => onTakePicture(context, size),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white38,
@@ -250,7 +248,7 @@ class _CameraNormalState extends State<CameraNormal> {
     );
   }
 
-  void onTakePicture(Size size) async {
+  void onTakePicture(BuildContext context, Size size) async {
     if (notiBtnTake.value) return;
     notiBtnTake.value = true;
     try {
@@ -259,7 +257,7 @@ class _CameraNormalState extends State<CameraNormal> {
       if (xFile != null) {
         notiBtnTake.value = false;
         if (mounted) {
-          final result = await dialogAskPhoto(xFile.path, size);
+          final result = await _DialogAsk(context, widget.language).show(xFile.path, size);
 
           if (result is String && mounted) {
             Navigator.pop(context, result);
@@ -286,131 +284,13 @@ class _CameraNormalState extends State<CameraNormal> {
     controller?.setZoomLevel(1);
   }
 
-  void onShowRecentImage(Size size) async {
+  void onShowRecentImage(BuildContext context, Size size) async {
     if (notiBtnTake.value) return;
-
-    final scrollController = ScrollController();
-    final streamList = StreamController<List<File>>();
-    final lock = Lock();
-
-    scrollController.addListener(() async {
-      final isGetMore = scrollController.position.maxScrollExtent - scrollController.position.pixels <= 100;
-
-      if (isGetMore) {
-        if (isLimitPhoto) return;
-        lock.synchronized(() async {
-          await getListPhoto(
-            page: listPhoto.length ~/ limit,
-            limit: limit,
-          ).listen(
-            (value) {
-              if (streamList.isClosed) return;
-              listPhoto.add(value);
-              streamList.sink.add(listPhoto);
-            },
-          ).asFuture();
-        });
-      }
-    });
-
-    await scaffoldState.currentState
-        ?.showBottomSheet(
-          (context) => Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Column(
-              children: [
-                Center(
-                  child: Container(
-                    height: 4,
-                    width: size.width * .2,
-                    margin: const EdgeInsets.only(top: 10, bottom: 15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: StreamBuilder(
-                    stream: streamList.stream,
-                    initialData: listPhoto,
-                    builder: (context, snapshot) {
-                      print(snapshot.data?.length);
-                      if (snapshot.data!.isEmpty && isLimitPhoto) {
-                        return Center(
-                          child: Text(widget.language.noPhotoOnGallery),
-                        );
-                      }
-
-                      return GridView.count(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 3,
-                        crossAxisSpacing: 3,
-                        controller: scrollController,
-                        padding: const EdgeInsets.only(
-                          bottom: 10,
-                          left: 15,
-                          right: 15,
-                        ),
-                        children: List.generate(
-                          snapshot.data!.length +
-                              (isLimitPhoto
-                                  ? 0
-                                  : snapshot.data!.isEmpty
-                                      ? 18
-                                      : 9),
-                          (index) {
-                            if (index >= snapshot.data!.length) {
-                              return const Placeholder().shimmer(
-                                size,
-                                true,
-                              );
-                            }
-
-                            return InkWell(
-                              onTap: () async {
-                                Navigator.pop(context);
-                                await Future.delayed(const Duration(milliseconds: 300));
-                                final result = await dialogAskPhoto(snapshot.data![index].path, size);
-                                if (result is String && mounted) {
-                                  Navigator.pop(this.context, result);
-                                }
-                              },
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(7),
-                                child: Image.file(
-                                  snapshot.data![index],
-                                  fit: BoxFit.cover,
-                                  repeat: ImageRepeat.noRepeat,
-                                  scale: .1,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          constraints: BoxConstraints(
-            maxHeight: size.height * .8,
-          ),
-          backgroundColor: Colors.transparent,
-          enableDrag: true,
-        )
-        .closed;
-
-    scrollController.dispose();
-    streamList.close();
+    _SelectImage().show(
+      context,
+      widget.language,
+      scaffoldState.currentState!,
+    );
   }
 
   Future<void> initCamera([CameraDescription? description]) async {
@@ -418,12 +298,6 @@ class _CameraNormalState extends State<CameraNormal> {
     await PhotoManager.clearFileCache();
     await getPhoto();
     pathSaveFile = (await getApplicationDocumentsDirectory()).path;
-
-    getListPhoto(page: 0, limit: limit).listen((value) {
-      if (streamListPhoto.isClosed) return;
-      listPhoto.add(value);
-      streamListPhoto.sink.add(listPhoto);
-    });
     return;
   }
 
@@ -432,7 +306,7 @@ class _CameraNormalState extends State<CameraNormal> {
 
     if (!resultPermission) return;
 
-    await for (final item in getListPhoto()) {
+    await for (final item in _SelectImage().getListPhoto()) {
       notiPathRecent.value = item.path;
     }
   }
@@ -451,150 +325,6 @@ class _CameraNormalState extends State<CameraNormal> {
     return false;
   }
 
-  Stream<File> getListPhoto({int page = 0, int limit = 1}) async* {
-    final lstPhoto = await PhotoManager.getAssetListPaged(
-      page: page,
-      pageCount: limit,
-      type: RequestType.image,
-      filterOption: FilterOptionGroup(
-        orders: [
-          const OrderOption(
-            asc: false,
-            type: OrderOptionType.createDate,
-          ),
-        ],
-      ),
-    );
-
-    if (lstPhoto.isEmpty) isLimitPhoto = true;
-
-    ReceivePort receivePort = ReceivePort();
-    final token = RootIsolateToken.instance;
-
-    final isolate = await Isolate.spawn(
-      (message) async {
-        BackgroundIsolateBinaryMessenger.ensureInitialized(message.token);
-        SendPort sendPort = message.port;
-        final lstFile = <File>[];
-
-        for (final item in message.lstPhoto) {
-          final file = await item.file;
-          if (file != null) {
-            lstFile.add(file);
-          }
-        }
-
-        sendPort.send(lstFile);
-      },
-      (
-        port: receivePort.sendPort,
-        lstPhoto: lstPhoto,
-        token: token!,
-      ),
-    );
-
-    for (final file in await receivePort.first) {
-      yield file;
-    }
-
-    isolate.kill(priority: Isolate.immediate);
-  }
-
-  Future dialogAskPhoto(String pathFile, Size size) async {
-    return await showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        insetPadding: EdgeInsets.only(
-          bottom: size.height * .085,
-          left: size.width * .05,
-          right: size.width * .05,
-        ),
-        child: Material(
-          borderRadius: BorderRadius.circular(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 15,
-                  vertical: 10,
-                ),
-                width: double.infinity,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: InteractiveViewer(
-                    child: Image.file(
-                      File(pathFile),
-                      height: size.height * .4,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 10.0, bottom: 10),
-                child: Text(
-                  widget.language.confirmChoice,
-                  style: widget.language.styleConfirmChoice ??
-                      const TextStyle(
-                        color: Colors.black,
-                      ),
-                ),
-              ),
-              Row(
-                children: [
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                      child: FilledButton(
-                        style: const ButtonStyle(
-                          backgroundColor: MaterialStatePropertyAll(Colors.white),
-                          foregroundColor: MaterialStatePropertyAll(Colors.grey),
-                          shape: MaterialStatePropertyAll(
-                            RoundedRectangleBorder(
-                              borderRadius: BorderRadius.all(Radius.circular(50)),
-                              side: BorderSide(width: 1, color: Colors.grey),
-                            ),
-                          ),
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(
-                          widget.language.cancel,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                      child: FilledButton(
-                        onPressed: () => Navigator.of(context).pop(pathFile),
-                        child: Text(
-                          widget.language.confirm,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void onFocusCamera(Size size, TapDownDetails details) async {
     final dx = details.localPosition.dx / size.width;
     final dy = details.localPosition.dy / size.height;
@@ -602,7 +332,7 @@ class _CameraNormalState extends State<CameraNormal> {
     controller?.setFocusPoint(Offset(dx, dy));
   }
 
-  void setFlashMode() {
+  void setFlashMode() async {
     if (notiFlashMode.value == FlashMode.off) {
       notiFlashMode.value = FlashMode.auto;
     } else if (notiFlashMode.value == FlashMode.auto) {
@@ -610,6 +340,6 @@ class _CameraNormalState extends State<CameraNormal> {
     } else {
       notiFlashMode.value = FlashMode.off;
     }
-    controller?.setFlashMode(notiFlashMode.value);
+    await controller?.setFlashMode(notiFlashMode.value);
   }
 }

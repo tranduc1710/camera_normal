@@ -3,14 +3,21 @@ part of '../camera_custom.dart';
 class CameraView extends StatefulWidget {
   final Widget? child;
   final CameraLanguage language;
-
-  final Function(CameraController controller)? onInit;
+  final ImageFormatGroup imageFormatGroup;
+  final ResolutionPreset resolutionPreset;
+  final FlashMode flashMode;
+  final Function(CameraImage image)? startImageStream;
+  final void Function(CameraController controller)? onInit;
 
   CameraView({
     super.key,
     required this.language,
     this.child,
     this.onInit,
+    this.imageFormatGroup = ImageFormatGroup.jpeg,
+    this.resolutionPreset = ResolutionPreset.max,
+    this.flashMode = FlashMode.auto,
+    this.startImageStream,
   });
 
   @override
@@ -27,51 +34,50 @@ class _CameraState extends State<CameraView> {
   @override
   void dispose() {
     super.dispose();
+    cameraController?.stopImageStream();
     cameraController?.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return FutureBuilder(
       future: initCamera(),
       builder: (context, snapshot) {
-        return SizedBox(
-          width: size.width,
-          height: size.height,
-          child: snapshot.connectionState != ConnectionState.done
-              ? buildLoadingCamera()
-              : contentError.isNotEmpty
-                  ? buildError()
-                  : CameraPreview(
-                      cameraController!,
-                      child: widget.child,
-                    ),
-        );
+        return snapshot.connectionState != ConnectionState.done
+            ? buildLoadingCamera()
+            : contentError.isNotEmpty
+                ? buildError()
+                : CameraPreview(
+                    cameraController!,
+                    child: widget.child,
+                  );
       },
     );
   }
 
-  Center buildError() {
-    return Center(
-      child: Text(
-        contentError,
-        style: const TextStyle(
-          color: Colors.red,
+  Scaffold buildError() {
+    return Scaffold(
+      body: Center(
+        child: Text(
+          contentError,
+          style: const TextStyle(
+            color: Colors.red,
+          ),
         ),
       ),
     );
   }
 
-  Center buildLoadingCamera() {
-    return Center(
-      child: Text(
-        widget.language.contentLoadCamera,
-        style: widget.language.styleLoadCamera ??
-            const TextStyle(
-              color: Colors.red,
-            ),
+  Scaffold buildLoadingCamera() {
+    return Scaffold(
+      body: Center(
+        child: Text(
+          widget.language.contentLoadCamera,
+          style: widget.language.styleLoadCamera ??
+              const TextStyle(
+                color: Colors.red,
+              ),
+        ),
       ),
     );
   }
@@ -81,13 +87,17 @@ class _CameraState extends State<CameraView> {
     _cameras = await availableCameras();
     cameraController = CameraController(
       description ?? _cameras[0],
-      ResolutionPreset.ultraHigh,
+      widget.resolutionPreset,
       enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.jpeg,
+      imageFormatGroup: widget.imageFormatGroup,
     );
+    await cameraController!.initialize();
+    await cameraController!.setDescription(description ?? _cameras[0]);
+    await cameraController!.setFlashMode(widget.flashMode);
+    if (widget.startImageStream != null) {
+      await cameraController!.startImageStream((image) => widget.startImageStream?.call(image));
+    }
     widget.onInit?.call(cameraController!);
-    await cameraController?.initialize();
-    cameraController?.setDescription(description ?? _cameras[0]);
     return;
   }
 }

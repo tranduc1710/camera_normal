@@ -30,6 +30,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  String content = "";
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,17 +40,25 @@ class _MyHomePageState extends State<MyHomePage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(content),
+            ),
             FilledButton(
               onPressed: () async {
                 final result = await CameraNormal().show(context);
-                print(result);
+                setState(() {
+                  content = result ?? '';
+                });
               },
               child: const Text('Camera normal'),
             ),
             FilledButton(
               onPressed: () async {
                 final result = await CameraQr().show(context);
-                print(result);
+                setState(() {
+                  content = result ?? '';
+                });
               },
               child: const Text('Camera QR'),
             ),

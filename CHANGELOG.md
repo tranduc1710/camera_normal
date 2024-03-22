@@ -1,3 +1,7 @@
+## 1.0.1+8
+
+* Update scan QR
+
 ## 1.0.0+3
 
 * Update platform

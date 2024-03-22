@@ -11,17 +11,21 @@ class CameraLanguage {
   final String cancel;
   final String scanQR;
   final String choiceImageFromGallery;
+  final String noQrInImage;
+  final String toMuchQr;
 
   CameraLanguage({
-    this.contentLoadCamera = 'Camera đang khởi chạy',
+    this.contentLoadCamera = 'Camera is initializing',
     this.styleLoadCamera,
-    this.noPhotoOnGallery = 'Không có ảnh nào trong thư viện',
+    this.noPhotoOnGallery = 'There are no photos in the gallery',
     this.styleNoPhotoOnGallery,
-    this.confirmChoice = 'Xác nhận chọn ảnh này?',
+    this.confirmChoice = 'Confirm selection of this photo?',
     this.styleConfirmChoice,
-    this.confirm = 'Đồng ý',
-    this.cancel = 'Huỷ',
-    this.scanQR = 'Đưa mã QR vào khung',
-    this.choiceImageFromGallery = 'Tải ảnh lên',
+    this.confirm = 'Agree',
+    this.cancel = 'Cancel',
+    this.scanQR = 'Insert the QR code into the frame',
+    this.choiceImageFromGallery = 'Select the photo',
+    this.noQrInImage = 'No QR code seen in the photo',
+    this.toMuchQr = 'There are too many QR codes in the screen',
   });
 }
