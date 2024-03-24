@@ -13,6 +13,7 @@ class CameraLanguage {
   final String choiceImageFromGallery;
   final String noQrInImage;
   final String toMuchQr;
+  final String noLibraryAccess;
 
   CameraLanguage({
     this.contentLoadCamera = 'Camera is initializing',
@@ -27,5 +28,6 @@ class CameraLanguage {
     this.choiceImageFromGallery = 'Select the photo',
     this.noQrInImage = 'No QR code seen in the photo',
     this.toMuchQr = 'There are too many QR codes in the screen',
+    this.noLibraryAccess = 'No library access',
   });
 }

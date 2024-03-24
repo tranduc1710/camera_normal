@@ -36,16 +36,11 @@ class _CameraQrState extends State<CameraQr> {
   final content = ValueNotifier("");
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
+  void dispose() async {
     _canProcess = false;
-    _barcodeScanner.close();
-    content.dispose();
     super.dispose();
+    await _barcodeScanner.close();
+    content.dispose();
   }
 
   @override
@@ -150,7 +145,7 @@ class _CameraQrState extends State<CameraQr> {
       scaffoldState.currentState!,
       hasConfirm: false,
     );
-    if (path is String) {
+    if (path is String && context.mounted) {
       detectImage(context, InputImage.fromFile(File(path)));
     }
   }
@@ -160,21 +155,29 @@ class _CameraQrState extends State<CameraQr> {
       inputImage,
     );
     if (_canProcess) {
+      _canProcess = false;
       content.value = '';
       if (result.isEmpty) {
-        if (!showError) return;
-        return _DialogAlert(widget.language).show(
-          context,
-          content: widget.language.noQrInImage,
-        );
-      }
-
-      if (result.length > 1) {
-        content.value = widget.language.toMuchQr;
+        _canProcess = true;
+        if (showError && context.mounted) {
+          return _DialogAlert(widget.language).show(
+            context,
+            content: widget.language.noQrInImage,
+          );
+        }
         return;
       }
 
-      if (Navigator.canPop(context)) {
+      if (result.length > 1) {
+        _canProcess = true;
+        content.value = widget.language.toMuchQr;
+        return;
+      }
+      super.dispose();
+      await _barcodeScanner.close();
+      content.dispose();
+
+      if (context.mounted) {
         Navigator.pop(context, result.firstOrNull?.rawValue);
       }
     }
@@ -191,7 +194,9 @@ class _CameraQrState extends State<CameraQr> {
       // only supported formats:
       // * nv21 for Android
       // * bgra8888 for iOS
-      if (format == null || (Platform.isAndroid && format != InputImageFormat.nv21) || (Platform.isIOS && format != InputImageFormat.bgra8888)) {
+      if (format == null ||
+          (Platform.isAndroid && format != InputImageFormat.nv21) ||
+          (Platform.isIOS && format != InputImageFormat.bgra8888)) {
         return;
       }
 

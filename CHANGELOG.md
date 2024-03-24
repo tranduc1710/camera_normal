@@ -1,4 +1,8 @@
-## 1.0.1+8
+## 1.0.3+1
+
+* Fix bug scan QR
+
+## 1.0.2+8
 
 * Update scan QR
 

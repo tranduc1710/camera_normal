@@ -32,10 +32,11 @@ class _CameraState extends State<CameraView> {
   var contentError = '';
 
   @override
-  void dispose() {
+  void dispose() async {
     super.dispose();
-    cameraController?.stopImageStream();
-    cameraController?.dispose();
+    if (widget.startImageStream != null) {
+      await cameraController?.stopImageStream();
+    }
   }
 
   @override

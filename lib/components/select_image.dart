@@ -9,13 +9,6 @@ class _SelectImage {
   var isLimitPhoto = false;
 
   _SelectImage([int limit = 30]) {
-    getListPhoto(page: 0, limit: limit).listen(
-      (value) {
-        if (streamList.isClosed) return;
-        listPhoto.add(value);
-        streamList.sink.add(listPhoto);
-      },
-    );
     scrollController.addListener(() async {
       if (listPhoto.length ~/ limit == 0) return;
 
@@ -107,7 +100,23 @@ class _SelectImage {
     bool hasConfirm = true,
   }) async {
     final size = MediaQuery.of(context).size;
+    await PhotoManager.clearFileCache();
+
+    final resultPermission = await _getPermissionImage();
     String? pathChoice;
+    String? msg;
+
+    if (!resultPermission) {
+      msg = language.noLibraryAccess;
+    }
+
+    getListPhoto(page: 0, limit: limit).listen(
+      (value) {
+        if (streamList.isClosed) return;
+        listPhoto.add(value);
+        streamList.sink.add(listPhoto);
+      },
+    );
 
     await scaffoldState
         .showBottomSheet(
@@ -139,7 +148,7 @@ class _SelectImage {
                     builder: (contextStream, snapshot) {
                       if (snapshot.data!.isEmpty && isLimitPhoto) {
                         return Center(
-                          child: Text(language.noPhotoOnGallery),
+                          child: Text(msg ?? language.noPhotoOnGallery),
                         );
                       }
 
@@ -219,5 +228,19 @@ class _SelectImage {
     streamList.close();
 
     return pathChoice;
+  }
+
+  Future<bool> _getPermissionImage() async {
+    final PermissionState ps = await PhotoManager.requestPermissionExtend(); // the method can use optional param `permission`.
+    if (ps.isAuth) {
+      return true;
+    } else if (ps.hasAccess) {
+      return true;
+    } else if (ps == PermissionState.denied) {
+      return true;
+    }
+    // Limited(iOS) or Rejected, use `==` for more precise judgements.
+    // You can call `PhotoManager.openSetting()` to open settings for further steps.
+    return false;
   }
 }
