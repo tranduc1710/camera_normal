@@ -98,7 +98,7 @@ class _CameraNormalState extends State<CameraNormal> {
     return Container(
       width: size.width,
       padding: EdgeInsets.only(top: padding.top),
-      color: Colors.black54,
+      color: Colors.black,
       child: Row(
         children: [
           IconButton(

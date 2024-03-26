@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:camera_normal/camera_custom.dart';
 import 'package:flutter/material.dart';
 
@@ -61,6 +63,23 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
               },
               child: const Text('Camera QR'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final path = await CameraTakeCIC().show(context);
+                if (path is String && context.mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      child: Image.file(File(path)),
+                    ),
+                  );
+                }
+              },
+              child: const Text(
+                'Camera take CIC',
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ),

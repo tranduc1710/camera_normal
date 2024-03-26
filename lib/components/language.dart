@@ -14,6 +14,7 @@ class CameraLanguage {
   final String noQrInImage;
   final String toMuchQr;
   final String noLibraryAccess;
+  final String citizenInFrame;
 
   CameraLanguage({
     this.contentLoadCamera = 'Camera is initializing',
@@ -29,5 +30,6 @@ class CameraLanguage {
     this.noQrInImage = 'No QR code seen in the photo',
     this.toMuchQr = 'There are too many QR codes in the screen',
     this.noLibraryAccess = 'No library access',
+    this.citizenInFrame = 'Include citizen identification card in the frame',
   });
 }
