@@ -36,6 +36,7 @@ class _CameraTakeCICState extends State<CameraTakeCIC> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final heightFrameQR = 400.0 * size.aspectRatio;
 
     return Scaffold(
       body: Stack(
@@ -45,6 +46,7 @@ class _CameraTakeCICState extends State<CameraTakeCIC> {
             child: CameraView(
               language: widget.language,
               resolutionPreset: ResolutionPreset.medium,
+              imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
               onInit: (controller) async {
                 cameraController = controller;
               },
@@ -54,10 +56,13 @@ class _CameraTakeCICState extends State<CameraTakeCIC> {
             painter: _PaintCCCD(),
             child: Stack(
               children: [
-                Align(
-                  alignment: const Alignment(0, -.33),
+                Positioned(
+                  top: size.height / 2 - heightFrameQR / 2 - 70,
+                  left: size.width * .2,
+                  right: size.width * .2,
                   child: Text(
                     widget.language.citizenInFrame,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -77,7 +82,7 @@ class _CameraTakeCICState extends State<CameraTakeCIC> {
                   ),
                 ),
                 Align(
-                  alignment: const Alignment(0, .9),
+                  alignment: const Alignment(0, .8),
                   child: GestureDetector(
                     onTap: () => onTakePicture(context, size),
                     child: Container(
@@ -126,18 +131,21 @@ class _CameraTakeCICState extends State<CameraTakeCIC> {
       final xFile = await cameraController?.takePicture();
       await cameraController?.pausePreview();
       if (xFile != null) {
-        final widthFrameQR = 700.0 * size.aspectRatio;
-        final heightFrameQR = 400.0 * size.aspectRatio;
-        final aspectRatio = cameraController!.value.previewSize!.aspectRatio + size.aspectRatio / 2;
+        final widthFrameQR = size.width * .85;
+        final heightFrameQR = size.width * .55;
+        final aspectRatio = cameraController!.value.previewSize!.aspectRatio;
         final height2 = size.height - cameraController!.value.previewSize!.height;
+        final widthCamera = cameraController!.value.previewSize!.width;
         final img = await image.decodeImageFile(xFile.path);
         if (img != null) {
+          final widthImage = (widthCamera * .8).toInt();
+          final heightImage = (widthCamera * .55 - height2 / 4).toInt();
           final imageCrop = image.copyCrop(
             img,
             x: (size.width - widthFrameQR) ~/ 2,
-            y: (cameraController!.value.previewSize!.height / 2 - height2 / 4).toInt(),
-            width: (widthFrameQR * aspectRatio).toInt(),
-            height: (heightFrameQR * aspectRatio).toInt(),
+            y: (size.height / 2 - heightFrameQR / 2 * aspectRatio - height2 / 4).toInt(),
+            width: widthImage,
+            height: heightImage,
           );
           await File(xFile.path).writeAsBytes(image.encodePng(imageCrop));
 
@@ -165,8 +173,8 @@ class _PaintCCCD extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final widthFrameQR = 700.0 * size.aspectRatio;
-    final heightFrameQR = 400.0 * size.aspectRatio;
+    final widthFrameQR = size.width * .85;
+    final heightFrameQR = size.width * .55;
     final path = Path();
 
     path.lineTo(size.width, 0);

@@ -77,6 +77,7 @@ class _CameraNormalState extends State<CameraNormal> {
                     this.controller = controller;
                   },
                   language: widget.language,
+                  imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
                   child: GestureDetector(
                     onTapDown: (details) => onFocusCamera(size, details),
                   ),
