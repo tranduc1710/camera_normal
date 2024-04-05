@@ -1,3 +1,15 @@
+## 1.2.4+1
+
+* Public custom choice image
+
+## 1.1.4+1
+
+* Public custom loading camera
+
+## 1.0.4+1
+
+* Add custom view camera
+
 ## 1.0.3+6
 
 * Fix bug take CIC

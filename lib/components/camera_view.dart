@@ -6,18 +6,21 @@ class CameraView extends StatefulWidget {
   final ImageFormatGroup imageFormatGroup;
   final ResolutionPreset resolutionPreset;
   final FlashMode flashMode;
-  final Function(CameraImage image)? startImageStream;
+  Function(CameraImage image)? startImageStream;
   final void Function(CameraController controller)? onInit;
+
+  final Widget Function()? buildLoading;
 
   CameraView({
     super.key,
-    required this.language,
+    this.language = const CameraLanguage(),
     this.child,
     this.onInit,
     this.imageFormatGroup = ImageFormatGroup.jpeg,
     this.resolutionPreset = ResolutionPreset.max,
     this.flashMode = FlashMode.auto,
     this.startImageStream,
+    this.buildLoading,
   });
 
   @override
@@ -45,7 +48,7 @@ class _CameraState extends State<CameraView> {
       future: initCamera(),
       builder: (context, snapshot) {
         return snapshot.connectionState != ConnectionState.done
-            ? buildLoadingCamera()
+            ? (widget.buildLoading?.call() ?? buildLoadingCamera())
             : contentError.isNotEmpty
                 ? buildError()
                 : CameraPreview(

@@ -287,7 +287,7 @@ class _CameraNormalState extends State<CameraNormal> {
 
   void onShowRecentImage(BuildContext context, Size size) async {
     if (notiBtnTake.value) return;
-    _SelectImage().show(
+    SelectImage().show(
       context,
       widget.language,
       scaffoldState.currentState!,
@@ -307,7 +307,7 @@ class _CameraNormalState extends State<CameraNormal> {
 
     if (!resultPermission) return;
 
-    await for (final item in _SelectImage().getListPhoto()) {
+    await for (final item in SelectImage().getListPhoto()) {
       notiPathRecent.value = item.path;
     }
   }

@@ -16,7 +16,7 @@ class CameraLanguage {
   final String noLibraryAccess;
   final String citizenInFrame;
 
-  CameraLanguage({
+  const CameraLanguage({
     this.contentLoadCamera = 'Camera is initializing',
     this.styleLoadCamera,
     this.noPhotoOnGallery = 'There are no photos in the gallery',

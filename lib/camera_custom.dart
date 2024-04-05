@@ -21,6 +21,7 @@ part 'components/dialog/dialog_ask.dart';
 part 'components/extension.dart';
 part 'components/select_image.dart';
 part 'components/shimmer.dart';
+part 'src/camera_custom.dart';
 part 'src/camera_normal.dart';
 part 'src/camera_qr.dart';
 part 'src/camera_take_cccd.dart';

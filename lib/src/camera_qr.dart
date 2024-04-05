@@ -139,7 +139,7 @@ class _CameraQrState extends State<CameraQr> {
   }
 
   void _onChoiceImage(BuildContext context) async {
-    final path = await _SelectImage().show(
+    final path = await SelectImage().show(
       context,
       widget.language,
       scaffoldState.currentState!,
@@ -194,9 +194,7 @@ class _CameraQrState extends State<CameraQr> {
       // only supported formats:
       // * nv21 for Android
       // * bgra8888 for iOS
-      if (format == null ||
-          (Platform.isAndroid && format != InputImageFormat.nv21) ||
-          (Platform.isIOS && format != InputImageFormat.bgra8888)) {
+      if (format == null || (Platform.isAndroid && format != InputImageFormat.nv21) || (Platform.isIOS && format != InputImageFormat.bgra8888)) {
         return;
       }
 

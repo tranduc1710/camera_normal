@@ -1,6 +1,6 @@
 part of '../camera_custom.dart';
 
-class _SelectImage {
+class SelectImage {
   final scrollController = ScrollController();
   final streamList = StreamController<List<File>>();
   final lock = Lock();

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:camera_normal/camera_custom.dart';
+import 'package:camera_normal/components/language.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -48,7 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             FilledButton(
               onPressed: () async {
-                final result = await CameraNormal().show(context);
+                final result = await CameraNormal().show(context, CameraLanguage());
                 setState(() {
                   content = result ?? '';
                 });
@@ -80,6 +81,25 @@ class _MyHomePageState extends State<MyHomePage> {
                 'Camera take CIC',
                 textAlign: TextAlign.center,
               ),
+            ),
+            CameraCustom(
+              cameraView: CameraView(),
+              builder: (context, cameraView) {
+                return Container(
+                  color: Colors.blue,
+                  width: 300,
+                  height: 500,
+                  child: Stack(
+                    children: [
+                      SizedBox(
+                        width: 250,
+                        height: 400,
+                        child: cameraView,
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
