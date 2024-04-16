@@ -52,19 +52,19 @@ class _CameraQrState extends State<CameraQr> {
       key: scaffoldState,
       body: Stack(
         children: [
-          Align(
-            alignment: Alignment.center,
-            child: SizedBox(
-              width: size.width / 2,
-              height: size.width / 2,
+          SizedBox(
+            width: size.width,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
               child: CameraView(
                 language: widget.language,
                 imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
                 resolutionPreset: ResolutionPreset.low,
                 startImageStream: (image) => startImageStream(context, image),
-                onInit: (controller) {
-                  controller.setZoomLevel(2);
-                },
+                // onInit: (controller) {
+                // controller.setZoomLevel(2);
+                // },
               ),
             ),
           ),
@@ -326,7 +326,7 @@ class _PaintQR extends CustomPainter {
     path.close();
 
     final paint = Paint();
-    paint.color = Colors.black;
+    paint.color = Colors.black26;
     paint.strokeWidth = 2;
 
     canvas.drawPath(path, paint);

@@ -45,7 +45,7 @@ class _CameraState extends State<CameraView> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: initCamera(),
+      future: Future(() => initCamera(context)),
       builder: (context, snapshot) {
         return snapshot.connectionState != ConnectionState.done
             ? (widget.buildLoading?.call() ?? buildLoadingCamera())
@@ -86,7 +86,7 @@ class _CameraState extends State<CameraView> {
     );
   }
 
-  Future<void> initCamera([CameraDescription? description]) async {
+  Future<void> initCamera(BuildContext context, [CameraDescription? description]) async {
     if (cameraController?.value.isInitialized ?? false) return;
     _cameras = await availableCameras();
     cameraController = CameraController(
@@ -101,6 +101,13 @@ class _CameraState extends State<CameraView> {
     if (widget.startImageStream != null) {
       await cameraController!.startImageStream((image) => widget.startImageStream?.call(image));
     }
+    final size = MediaQuery.of(context).size;
+    cameraController!.value = cameraController!.value.copyWith(
+      previewSize: Size(
+        size.width * cameraController!.value.aspectRatio,
+        size.height * cameraController!.value.aspectRatio,
+      ),
+    );
     widget.onInit?.call(cameraController!);
     return;
   }

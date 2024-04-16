@@ -121,12 +121,19 @@ class SelectImage {
     await scaffoldState
         .showBottomSheet(
           (contextSheet) => Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.only(
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(.2),
+                  blurRadius: 5,
+                  offset: const Offset(0, 0),
+                ),
+              ],
             ),
             child: Column(
               children: [
