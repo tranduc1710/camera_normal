@@ -47,13 +47,24 @@ class _CameraState extends State<CameraView> {
     return FutureBuilder(
       future: Future(() => initCamera(context)),
       builder: (context, snapshot) {
+        final size = MediaQuery.of(context).size;
+
         return snapshot.connectionState != ConnectionState.done
             ? (widget.buildLoading?.call() ?? buildLoadingCamera())
             : contentError.isNotEmpty
                 ? buildError()
-                : CameraPreview(
-                    cameraController!,
-                    child: widget.child,
+                : Center(
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: SizedBox(
+                        // width: size.width * cameraController!.value.aspectRatio,
+                        // height: cameraController!.value.previewSize!.height / size.height,
+                        child: CameraPreview(
+                          cameraController!,
+                          child: widget.child,
+                        ),
+                      ),
+                    ),
                   );
       },
     );
@@ -101,13 +112,6 @@ class _CameraState extends State<CameraView> {
     if (widget.startImageStream != null) {
       await cameraController!.startImageStream((image) => widget.startImageStream?.call(image));
     }
-    final size = MediaQuery.of(context).size;
-    cameraController!.value = cameraController!.value.copyWith(
-      previewSize: Size(
-        size.width * cameraController!.value.aspectRatio,
-        size.height * cameraController!.value.aspectRatio,
-      ),
-    );
     widget.onInit?.call(cameraController!);
     return;
   }

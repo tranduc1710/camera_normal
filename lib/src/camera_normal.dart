@@ -68,7 +68,7 @@ class _CameraNormalState extends State<CameraNormal> {
       backgroundColor: Colors.black,
       body: Column(
         children: [
-          buildTop(context, size, padding),
+          // buildTop(context, size, padding),
           Expanded(
             child: Stack(
               children: [
@@ -82,6 +82,7 @@ class _CameraNormalState extends State<CameraNormal> {
                     onTapDown: (details) => onFocusCamera(size, details),
                   ),
                 ),
+                buildTop(context, size, padding),
                 Positioned(
                   width: size.width,
                   bottom: 0,
@@ -99,7 +100,7 @@ class _CameraNormalState extends State<CameraNormal> {
     return Container(
       width: size.width,
       padding: EdgeInsets.only(top: padding.top),
-      color: Colors.black,
+      color: Colors.black26,
       child: Row(
         children: [
           IconButton(
@@ -147,7 +148,7 @@ class _CameraNormalState extends State<CameraNormal> {
     const sizeBtn = 55.0;
 
     return Container(
-      color: Colors.black,
+      color: Colors.black26,
       width: size.width,
       padding: EdgeInsets.only(
         bottom: padding.bottom + 30,

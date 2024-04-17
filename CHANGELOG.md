@@ -1,3 +1,6 @@
+## 1.3.1+1
+
+* Update UI select image
 ## 1.2.4+1
 
 * Public custom choice image
