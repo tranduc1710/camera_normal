@@ -142,7 +142,7 @@ class _CameraQrState extends State<CameraQr> {
     final path = await SelectImage().show(
       context,
       widget.language,
-      scaffoldState.currentState!,
+      // scaffoldState.currentState!,
       hasConfirm: false,
     );
     if (path is String && context.mounted) {

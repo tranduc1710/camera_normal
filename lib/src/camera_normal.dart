@@ -290,7 +290,7 @@ class _CameraNormalState extends State<CameraNormal> {
     SelectImage().show(
       context,
       widget.language,
-      scaffoldState.currentState!,
+      // scaffoldState.currentState!,
     );
   }
 

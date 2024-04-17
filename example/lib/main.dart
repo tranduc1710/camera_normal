@@ -82,25 +82,43 @@ class _MyHomePageState extends State<MyHomePage> {
                 textAlign: TextAlign.center,
               ),
             ),
-            CameraCustom(
-              cameraView: CameraView(),
-              builder: (context, cameraView) {
-                return Container(
-                  color: Colors.blue,
-                  width: 300,
-                  height: 500,
-                  child: Stack(
-                    children: [
-                      SizedBox(
-                        width: 250,
-                        height: 400,
-                        child: cameraView,
-                      ),
-                    ],
-                  ),
-                );
+            FilledButton(
+              onPressed: () async {
+
+                final path = await SelectImage().show(context, CameraLanguage());
+                if (path is String && context.mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      child: Image.file(File(path)),
+                    ),
+                  );
+                }
               },
+              child: const Text(
+                'Show image',
+                textAlign: TextAlign.center,
+              ),
             ),
+            // CameraCustom(
+            //   cameraView: CameraView(),
+            //   builder: (context, cameraView) {
+            //     return Container(
+            //       color: Colors.blue,
+            //       width: 300,
+            //       height: 500,
+            //       child: Stack(
+            //         children: [
+            //           SizedBox(
+            //             width: 250,
+            //             height: 400,
+            //             child: cameraView,
+            //           ),
+            //         ],
+            //       ),
+            //     );
+            //   },
+            // ),
           ],
         ),
       ),

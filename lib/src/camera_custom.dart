@@ -54,7 +54,7 @@ class _CameraCustomState extends State<CameraCustom> {
     final path = await SelectImage().show(
       context,
       widget.language ?? CameraLanguage(),
-      widget.controller!.globalKey!.currentState!,
+      // widget.controller!.globalKey!.currentState!,
       hasConfirm: false,
     );
     if (path is String) {
