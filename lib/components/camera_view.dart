@@ -53,16 +53,15 @@ class _CameraState extends State<CameraView> {
             ? (widget.buildLoading?.call() ?? buildLoadingCamera())
             : contentError.isNotEmpty
                 ? buildError()
-                : Center(
-                    child: SingleChildScrollView(
-                      physics: const NeverScrollableScrollPhysics(),
-                      child: SizedBox(
-                        // width: size.width * cameraController!.value.aspectRatio,
-                        // height: cameraController!.value.previewSize!.height / size.height,
-                        child: CameraPreview(
-                          cameraController!,
-                          child: widget.child,
-                        ),
+                : Transform.scale(
+                    // scale: .5,
+                    scale: size.height / size.width,
+                    child: AspectRatio(
+                      // aspectRatio: 1,
+                      aspectRatio: cameraController!.value.previewSize!.height / cameraController!.value.previewSize!.width,
+                      child: CameraPreview(
+                        cameraController!,
+                        child: widget.child,
                       ),
                     ),
                   );
@@ -83,18 +82,8 @@ class _CameraState extends State<CameraView> {
     );
   }
 
-  Scaffold buildLoadingCamera() {
-    return Scaffold(
-      body: Center(
-        child: Text(
-          widget.language.contentLoadCamera,
-          style: widget.language.styleLoadCamera ??
-              const TextStyle(
-                color: Colors.red,
-              ),
-        ),
-      ),
-    );
+  Widget buildLoadingCamera() {
+    return Container();
   }
 
   Future<void> initCamera(BuildContext context, [CameraDescription? description]) async {

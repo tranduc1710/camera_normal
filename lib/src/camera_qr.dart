@@ -52,21 +52,11 @@ class _CameraQrState extends State<CameraQr> {
       key: scaffoldState,
       body: Stack(
         children: [
-          SizedBox(
-            width: size.width,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const NeverScrollableScrollPhysics(),
-              child: CameraView(
-                language: widget.language,
-                imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
-                resolutionPreset: ResolutionPreset.low,
-                startImageStream: (image) => startImageStream(context, image),
-                // onInit: (controller) {
-                // controller.setZoomLevel(2);
-                // },
-              ),
-            ),
+          CameraView(
+            language: widget.language,
+            imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+            resolutionPreset: ResolutionPreset.low,
+            startImageStream: (image) => startImageStream(context, image),
           ),
           CustomPaint(
             painter: _PaintQR(),
@@ -120,13 +110,16 @@ class _CameraQrState extends State<CameraQr> {
                   ),
                 ),
                 Align(
-                  alignment: const Alignment(.95, -.92),
-                  child: IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 25,
+                  alignment: const Alignment(.95, -.98),
+                  child: Padding(
+                    padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+                    child: IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 25,
+                      ),
                     ),
                   ),
                 ),
