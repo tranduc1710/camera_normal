@@ -1,3 +1,7 @@
+## 2.0.0+1
+
+* Add custom UI take CIC and QR
+
 ## 1.3.2+1
 
 * Fix full screen CameraView
