@@ -1,10 +1,10 @@
 part of '../../camera_custom.dart';
 
-class _DialogAsk {
+class DialogConfirmImage {
   final BuildContext context;
   final CameraLanguage language;
 
-  _DialogAsk(this.context, this.language);
+  DialogConfirmImage(this.context, [this.language = const CameraLanguage()]);
 
   Future show(String pathFile, Size size) {
     return showDialog(

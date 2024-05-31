@@ -8,6 +8,7 @@ class CameraView extends StatefulWidget {
   final FlashMode flashMode;
   Function(CameraImage image)? startImageStream;
   final void Function(CameraController controller)? onInit;
+  final bool isFullScreen;
 
   final Widget Function()? buildLoading;
 
@@ -21,6 +22,7 @@ class CameraView extends StatefulWidget {
     this.flashMode = FlashMode.auto,
     this.startImageStream,
     this.buildLoading,
+    this.isFullScreen = true,
   });
 
   @override
@@ -49,22 +51,29 @@ class _CameraState extends State<CameraView> {
       builder: (context, snapshot) {
         final size = MediaQuery.of(context).size;
 
-        return snapshot.connectionState != ConnectionState.done
-            ? (widget.buildLoading?.call() ?? buildLoadingCamera())
-            : contentError.isNotEmpty
-                ? buildError()
-                : Transform.scale(
-                    // scale: .5,
-                    scale: size.height / size.width,
-                    child: AspectRatio(
-                      // aspectRatio: 1,
-                      aspectRatio: cameraController!.value.previewSize!.height / cameraController!.value.previewSize!.width,
-                      child: CameraPreview(
-                        cameraController!,
-                        child: widget.child,
-                      ),
-                    ),
-                  );
+        if (snapshot.connectionState != ConnectionState.done) return (widget.buildLoading?.call() ?? buildLoadingCamera());
+
+        if (contentError.isNotEmpty) return buildError();
+
+        if (!widget.isFullScreen) {
+          return Center(
+            child: CameraPreview(
+              cameraController!,
+              child: widget.child,
+            ),
+          );
+        }
+
+        return Transform.scale(
+          scale: size.height / size.width,
+          child: AspectRatio(
+            aspectRatio: cameraController!.value.previewSize!.height / cameraController!.value.previewSize!.width,
+            child: CameraPreview(
+              cameraController!,
+              child: widget.child,
+            ),
+          ),
+        );
       },
     );
   }

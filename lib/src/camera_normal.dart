@@ -259,7 +259,7 @@ class _CameraNormalState extends State<CameraNormal> {
       if (xFile != null) {
         notiBtnTake.value = false;
         if (mounted) {
-          final result = await _DialogAsk(context, widget.language).show(xFile.path, size);
+          final result = await DialogConfirmImage(context, widget.language).show(xFile.path, size);
 
           if (result is String && mounted) {
             Navigator.pop(context, result);

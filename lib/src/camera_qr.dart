@@ -1,9 +1,10 @@
 part of '../camera_custom.dart';
 
 class CameraQr extends StatefulWidget {
-  CameraLanguage language = CameraLanguage();
+  CameraLanguage language = const CameraLanguage();
+  final Widget Function(BuildContext context)? build;
 
-  CameraQr({super.key});
+  CameraQr({super.key, this.build});
 
   Future<String?> show(BuildContext context, [CameraLanguage? language]) async {
     if (language != null) {
@@ -23,33 +24,33 @@ class CameraQr extends StatefulWidget {
     return null;
   }
 
+  Future<List<Barcode>> detectImage(BuildContext context, InputImage inputImage) async {
+    final BarcodeScanner barcodeScanner = BarcodeScanner();
+    final result = await barcodeScanner.processImage(inputImage);
+    await barcodeScanner.close();
+    return result;
+  }
+
   @override
   _CameraQrState createState() => _CameraQrState();
 }
 
 class _CameraQrState extends State<CameraQr> {
-  final scaffoldState = GlobalKey<ScaffoldState>();
   final BarcodeScanner _barcodeScanner = BarcodeScanner();
 
   bool _canProcess = true;
   bool _isBusy = false;
-  final content = ValueNotifier("");
 
   @override
   void dispose() async {
     _canProcess = false;
-    super.dispose();
     await _barcodeScanner.close();
-    content.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final padding = MediaQuery.of(context).padding;
-
     return Scaffold(
-      key: scaffoldState,
       body: Stack(
         children: [
           CameraView(
@@ -60,115 +61,30 @@ class _CameraQrState extends State<CameraQr> {
           ),
           CustomPaint(
             painter: _PaintQR(),
-            child: Stack(
-              children: [
-                Align(
-                  alignment: const Alignment(0, -.33),
-                  child: ValueListenableBuilder(
-                      valueListenable: content,
-                      builder: (context, value, child) {
-                        return Text(
-                          value.isEmpty ? widget.language.scanQR : value,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        );
-                      }),
-                ),
-                Align(
-                  alignment: const Alignment(0, .4),
-                  child: FilledButton(
-                    style: const ButtonStyle(
-                      backgroundColor: MaterialStatePropertyAll(Colors.white),
-                      foregroundColor: MaterialStatePropertyAll(Colors.grey),
-                      shape: MaterialStatePropertyAll(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(20)),
-                          side: BorderSide(width: 1, color: Colors.grey),
-                        ),
-                      ),
-                    ),
-                    onPressed: () => _onChoiceImage(context),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.image_outlined,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          widget.language.choiceImageFromGallery,
-                          style: TextStyle(
-                            color: Colors.black.withOpacity(.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Align(
-                  alignment: const Alignment(.95, -.98),
-                  child: Padding(
-                    padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-                    child: IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 25,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            child: widget.build?.call(context),
           ),
         ],
       ),
     );
   }
 
-  void _onChoiceImage(BuildContext context) async {
-    final path = await SelectImage().show(
-      context,
-      widget.language,
-      // scaffoldState.currentState!,
-      hasConfirm: false,
-    );
-    if (path is String && context.mounted) {
-      detectImage(context, InputImage.fromFile(File(path)));
-    }
-  }
-
-  Future<void> detectImage(BuildContext context, InputImage inputImage, {bool showError = true}) async {
+  Future<void> detectImage(BuildContext context, InputImage inputImage) async {
     final result = await _barcodeScanner.processImage(
       inputImage,
     );
     if (_canProcess) {
       _canProcess = false;
-      content.value = '';
       if (result.isEmpty) {
         _canProcess = true;
-        if (showError && context.mounted) {
-          return _DialogAlert(widget.language).show(
-            context,
-            content: widget.language.noQrInImage,
-          );
-        }
         return;
       }
 
       if (result.length > 1) {
         _canProcess = true;
-        content.value = widget.language.toMuchQr;
         return;
       }
       super.dispose();
       await _barcodeScanner.close();
-      content.dispose();
 
       if (context.mounted) {
         Navigator.pop(context, result.firstOrNull?.rawValue);
@@ -177,6 +93,7 @@ class _CameraQrState extends State<CameraQr> {
   }
 
   void startImageStream(BuildContext context, CameraImage image) async {
+    await Future.delayed(const Duration(seconds: 1));
     if (!_canProcess) return;
     if (_isBusy) return;
     _isBusy = true;
@@ -205,7 +122,7 @@ class _CameraQrState extends State<CameraQr> {
           bytesPerRow: plane.bytesPerRow, // used only in iOS
         ),
       );
-      await detectImage(context, inputImage, showError: false);
+      await detectImage(context, inputImage);
     } catch (e, s) {
       if (kDebugMode) {
         print(e);

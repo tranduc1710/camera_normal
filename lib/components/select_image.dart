@@ -59,37 +59,6 @@ class SelectImage {
         yield file;
       }
     }
-    //
-    // ReceivePort receivePort = ReceivePort();
-    // final token = RootIsolateToken.instance;
-    //
-    // final isolate = await Isolate.spawn(
-    //   (message) async {
-    //     BackgroundIsolateBinaryMessenger.ensureInitialized(message.token);
-    //     SendPort sendPort = message.port;
-    //     final lstFile = <File>[];
-    //
-    //     for (final item in message.lstPhoto) {
-    //       final file = await item.file;
-    //       if (file != null) {
-    //         lstFile.add(file);
-    //       }
-    //     }
-    //
-    //     sendPort.send(lstFile);
-    //   },
-    //   (
-    //     port: receivePort.sendPort,
-    //     lstPhoto: lstPhoto,
-    //     token: token!,
-    //   ),
-    // );
-    //
-    // for (final file in await receivePort.first) {
-    //   yield file;
-    // }
-    //
-    // isolate.kill(priority: Isolate.immediate);
   }
 
   Future show(
@@ -250,7 +219,7 @@ class SelectImage {
     streamList.close();
 
     if (hasConfirm && contextParent.mounted && pathChoice is String) {
-      final result = await _DialogAsk(contextParent, language).show(pathChoice!, size);
+      final result = await DialogConfirmImage(contextParent, language).show(pathChoice!, size);
       return result;
     }
 
