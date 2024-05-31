@@ -37,13 +37,21 @@ class CameraQr extends StatefulWidget {
 
 class _CameraQrState extends State<CameraQr> {
   final BarcodeScanner _barcodeScanner = BarcodeScanner();
+  late final timer = Timer(
+    const Duration(seconds: 1),
+    () {
+      _canScan = true;
+    },
+  );
 
   bool _canProcess = true;
   bool _isBusy = false;
+  bool _canScan = false;
 
   @override
   void dispose() async {
     _canProcess = false;
+    timer.cancel();
     await _barcodeScanner.close();
     super.dispose();
   }
@@ -93,7 +101,8 @@ class _CameraQrState extends State<CameraQr> {
   }
 
   void startImageStream(BuildContext context, CameraImage image) async {
-    await Future.delayed(const Duration(seconds: 1));
+    if (!_canScan) return;
+    _canScan = false;
     if (!_canProcess) return;
     if (_isBusy) return;
     _isBusy = true;
