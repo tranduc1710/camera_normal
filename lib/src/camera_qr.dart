@@ -37,23 +37,75 @@ class CameraQr extends StatefulWidget {
 
 class _CameraQrState extends State<CameraQr> {
   final BarcodeScanner _barcodeScanner = BarcodeScanner();
-  late final timer = Timer(
-    const Duration(seconds: 1),
-    () {
-      _canScan = true;
-    },
-  );
 
   bool _canProcess = true;
   bool _isBusy = false;
-  bool _canScan = false;
+  bool onLoading = false;
+  CameraController? cameraController;
+  late Timer timer;
+
+  final lstByte = ValueNotifier<File?>(null);
+  String value = "";
+
+  @override
+  void initState() {
+    super.initState();
+
+    timer = Timer.periodic(
+      const Duration(seconds: 1),
+      (timer) async {
+        if (onLoading) return;
+        onLoading = true;
+        try {
+          final xFile = await cameraController?.takePicture();
+          if (xFile != null) {
+            final img = await image.decodeImageFile(xFile.path);
+            if (img != null && context.mounted) {
+              final size = MediaQuery.sizeOf(context);
+              final padding = MediaQuery.paddingOf(context);
+              final heightImg = img.height;
+              final widthImg = img.width;
+              final widthImage = widthImg ~/ 2;
+              final heightImage = widthImg ~/ 2;
+
+              final imageCrop = image.copyCrop(
+                img,
+                x: (widthImg / 2 - widthImage / 2 + (widthImage / 2 * size.aspectRatio)).toInt(),
+                y: (heightImg / 2 - heightImage / 2 + (heightImage * size.aspectRatio) + padding.top).toInt(),
+                width: (widthImage * size.aspectRatio).toInt(),
+                height: (heightImage * size.aspectRatio).toInt(),
+              );
+
+              final bytes = image.encodePng(imageCrop);
+
+              var file = File('${(await getApplicationCacheDirectory()).path}qr.jpg');
+              await file.writeAsBytes(bytes);
+
+              final result = await _barcodeScanner.processImage(InputImage.fromFile(file));
+
+              await file.delete();
+
+              if (result.length == 1) {
+                timer.cancel();
+                Navigator.pop(context, result.firstOrNull?.rawValue);
+              }
+            }
+          }
+        } catch (e, s) {
+          print(e);
+          print(s);
+        }
+        onLoading = false;
+      },
+    );
+  }
 
   @override
   void dispose() async {
     _canProcess = false;
     timer.cancel();
-    await _barcodeScanner.close();
     super.dispose();
+    await _barcodeScanner.close();
   }
 
   @override
@@ -62,47 +114,103 @@ class _CameraQrState extends State<CameraQr> {
       body: Stack(
         children: [
           CameraView(
+            // isFullScreen: false,
             language: widget.language,
             imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
-            resolutionPreset: ResolutionPreset.low,
-            startImageStream: (image) => startImageStream(context, image),
+            resolutionPreset: ResolutionPreset.medium,
+            onInit: (controller) {
+              cameraController = controller;
+              cameraController?.setFlashMode(FlashMode.off);
+            },
+            // startImageStream: (image) => startImageStream(context, image),
           ),
           CustomPaint(
             painter: _PaintQR(),
-            child: widget.build?.call(context),
+            child: widget.build?.call(context) ?? const Center(child: SizedBox()),
           ),
+          ValueListenableBuilder(
+              valueListenable: lstByte,
+              builder: (context, bytes, child) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(value),
+                    if (bytes != null) Image.file(bytes),
+                  ],
+                );
+              }),
         ],
       ),
     );
   }
 
   Future<void> detectImage(BuildContext context, InputImage inputImage) async {
-    final result = await _barcodeScanner.processImage(
-      inputImage,
-    );
+    image.Image? imageCrop;
+
+    if (inputImage.bytes != null) {
+      final img = image.decodeImage(inputImage.bytes!);
+      if (img != null) {
+        final heightImg = img.height;
+        final widthImg = img.width;
+        final widthImage = widthImg ~/ 2;
+        final heightImage = widthImg ~/ 2;
+
+        imageCrop = image.copyCrop(
+          img,
+          x: widthImg ~/ 2 - widthImage ~/ 2,
+          y: heightImg ~/ 2 - heightImage,
+          width: widthImage ~/ 2,
+          height: heightImage ~/ 2,
+        );
+        inputImage = InputImage.fromBytes(
+            bytes: image.encodePng(imageCrop),
+            metadata: InputImageMetadata(
+              size: Size(widthImage.toDouble(), heightImage.toDouble()),
+              rotation: InputImageRotation.rotation0deg,
+              format: Platform.isAndroid ? InputImageFormat.nv21 : InputImageFormat.bgra8888,
+              bytesPerRow: imageCrop.bitsPerChannel,
+            ));
+      }
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    final result = await _barcodeScanner.processImage(inputImage);
     if (_canProcess) {
       _canProcess = false;
       if (result.isEmpty) {
         _canProcess = true;
+        value = '';
         return;
       }
 
       if (result.length > 1) {
         _canProcess = true;
+        value = '';
         return;
       }
-      super.dispose();
-      await _barcodeScanner.close();
 
-      if (context.mounted) {
-        Navigator.pop(context, result.firstOrNull?.rawValue);
+      if (value.isNotEmpty && value == result.firstOrNull?.rawValue) {
+        print(value);
+        if (imageCrop != null) {
+          final base64 = base64Encode(imageCrop.getBytes());
+          print(base64);
+        }
+        // Navigator.pop(context);
+        // return;
       }
+
+      value = result.firstOrNull?.rawValue ?? '';
+      _canProcess = true;
+    } else {
+      value = '';
     }
   }
 
   void startImageStream(BuildContext context, CameraImage image) async {
-    if (!_canScan) return;
-    _canScan = false;
+    // if (!_canScan) return;
+    // _canScan = false;
+    await Future.delayed(const Duration(seconds: 1));
     if (!_canProcess) return;
     if (_isBusy) return;
     _isBusy = true;

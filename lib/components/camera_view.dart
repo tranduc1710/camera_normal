@@ -45,6 +45,16 @@ class _CameraState extends State<CameraView> {
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    if (Platform.isAndroid) {
+      cameraController?.pausePreview();
+    } else if (Platform.isIOS) {
+      cameraController?.resumePreview();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: Future(() => initCamera(context)),
