@@ -1,3 +1,15 @@
+## 2.1.0
+
+* Fix view QR
+
+## 2.0.7
+
+* Fix scan QR
+
+## 2.0.3
+
+* Fix crash CameraView
+
 ## 2.0.2
 
 * Fix scan QR on frame
