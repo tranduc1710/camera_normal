@@ -61,7 +61,7 @@ class _CameraState extends State<CameraView> {
       builder: (context, snapshot) {
         final size = MediaQuery.of(context).size;
 
-        if (snapshot.connectionState != ConnectionState.done) return (widget.buildLoading?.call() ?? buildLoadingCamera());
+        if (snapshot.connectionState != ConnectionState.done || cameraController == null) return (widget.buildLoading?.call() ?? buildLoadingCamera());
 
         if (contentError.isNotEmpty) return buildError();
 
@@ -77,7 +77,7 @@ class _CameraState extends State<CameraView> {
         return Transform.scale(
           scale: size.height / size.width,
           child: AspectRatio(
-            aspectRatio: cameraController!.value.previewSize!.height / cameraController!.value.previewSize!.width,
+            aspectRatio: (cameraController?.value.previewSize?.height ?? 4) / (cameraController?.value.previewSize?.width ?? 3),
             child: CameraPreview(
               cameraController!,
               child: widget.child,

@@ -1,3 +1,7 @@
+## 2.0.2
+
+* Fix scan QR on frame
+
 ## 2.0.0+1
 
 * Add custom UI take CIC and QR
