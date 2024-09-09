@@ -1,3 +1,11 @@
+## 2.1.1
+
+* Increase the QR scan frame size.
+
+## 2.1.0
+
+* Increase the QR scan frame size.
+
 ## 2.1.0
 
 * Fix view QR

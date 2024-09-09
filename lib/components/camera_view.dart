@@ -74,13 +74,15 @@ class _CameraState extends State<CameraView> {
           );
         }
 
-        return Transform.scale(
-          scale: size.height / size.width,
-          child: AspectRatio(
-            aspectRatio: (cameraController?.value.previewSize?.height ?? 4) / (cameraController?.value.previewSize?.width ?? 3),
-            child: CameraPreview(
-              cameraController!,
-              child: widget.child,
+        return Center(
+          child: Transform.scale(
+            scale: size.aspectRatio + 1,
+            child: AspectRatio(
+              aspectRatio: (cameraController?.value.previewSize?.height ?? 4) / (cameraController?.value.previewSize?.width ?? 3),
+              child: CameraPreview(
+                cameraController!,
+                child: widget.child,
+              ),
             ),
           ),
         );

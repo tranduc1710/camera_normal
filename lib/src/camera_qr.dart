@@ -36,7 +36,7 @@ class CameraQr extends StatefulWidget {
 }
 
 class _CameraQrState extends State<CameraQr> {
-  final BarcodeScanner _barcodeScanner = BarcodeScanner();
+  BarcodeScanner _barcodeScanner = BarcodeScanner();
 
   bool _canProcess = true;
   bool _isBusy = false;
@@ -91,8 +91,8 @@ class _CameraQrState extends State<CameraQr> {
   }
 
   void handleQR() async {
-    while (mounted) {
-      try {
+    try {
+      while (mounted) {
         await Future.delayed(const Duration(milliseconds: 1000));
 
         if (!mounted) return;
@@ -105,15 +105,18 @@ class _CameraQrState extends State<CameraQr> {
             final padding = MediaQuery.paddingOf(context);
             final heightImg = img.height;
             final widthImg = img.width;
-            final widthImage = widthImg ~/ 2;
-            final heightImage = widthImg ~/ 2;
+            const sizeRatio = 1.5;
+            final widthImage = widthImg ~/ sizeRatio;
+            final heightImage = widthImg ~/ sizeRatio;
+            final x = widthImg / 2 - widthImage / sizeRatio + (widthImage / sizeRatio * size.aspectRatio);
+            final y = heightImg / 2 - heightImage / 2 - padding.top;
 
             final imageCrop = image.copyCrop(
               img,
-              x: (widthImg / 2 - widthImage / 2 + (widthImage / 2 * size.aspectRatio)).toInt(),
-              y: (heightImg / 2 - heightImage / 2 + (heightImage * size.aspectRatio) + padding.top).toInt(),
-              width: (widthImage * size.aspectRatio).toInt(),
-              height: (heightImage * size.aspectRatio).toInt(),
+              x: x.toInt(),
+              y: y.toInt(),
+              width: (widthImage).toInt(),
+              height: (heightImage).toInt(),
             );
 
             final bytes = image.encodePng(imageCrop);
@@ -130,10 +133,11 @@ class _CameraQrState extends State<CameraQr> {
             }
           }
         }
-      } catch (e, s) {
-        print(e);
-        print(s);
       }
+    } catch (e, s) {
+      _barcodeScanner = BarcodeScanner();
+      print(e);
+      print(s);
     }
     _canProcess = false;
     await _barcodeScanner.close();
