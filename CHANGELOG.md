@@ -1,3 +1,7 @@
+## 2.1.2
+
+* Fix bug select image and shimmer load image
+
 ## 2.1.1
 
 * Increase the QR scan frame size.
