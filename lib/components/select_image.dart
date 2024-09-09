@@ -53,6 +53,10 @@ class SelectImage {
       return;
     }
 
+    if (page == 0 && lstPhoto.length < limit) {
+      isLimitPhoto = true;
+    }
+
     for (final item in lstPhoto) {
       final file = await item.file;
       if (file != null) {
@@ -141,8 +145,6 @@ class SelectImage {
                           crossAxisCount: 3,
                           mainAxisSpacing: 3,
                           crossAxisSpacing: 3,
-                          // shrinkWrap: true,
-                          // physics: const NeverScrollableScrollPhysics(),
                           controller: scrollController,
                           padding: const EdgeInsets.only(
                             bottom: 10,
@@ -227,7 +229,8 @@ class SelectImage {
   }
 
   Future<bool> _getPermissionImage() async {
-    final PermissionState ps = await PhotoManager.requestPermissionExtend(); // the method can use optional param `permission`.
+    final PermissionState ps =
+        await PhotoManager.requestPermissionExtend(); // the method can use optional param `permission`.
     if (ps.isAuth) {
       return true;
     } else if (ps.hasAccess) {
