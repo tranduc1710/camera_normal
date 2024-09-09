@@ -288,11 +288,13 @@ class _CameraNormalState extends State<CameraNormal> {
 
   void onShowRecentImage(BuildContext context, Size size) async {
     if (notiBtnTake.value) return;
-    SelectImage().show(
+    final imageSelect = await SelectImage().show(
       context,
       widget.language,
-      // scaffoldState.currentState!,
     );
+    if (imageSelect is String && context.mounted) {
+      Navigator.pop(context, imageSelect);
+    }
   }
 
   Future<void> initCamera([CameraDescription? description]) async {
@@ -314,7 +316,8 @@ class _CameraNormalState extends State<CameraNormal> {
   }
 
   Future<bool> getPermissionImage() async {
-    final PermissionState ps = await PhotoManager.requestPermissionExtend(); // the method can use optional param `permission`.
+    final PermissionState ps =
+        await PhotoManager.requestPermissionExtend(); // the method can use optional param `permission`.
     if (ps.isAuth) {
       return true;
     } else if (ps.hasAccess) {
