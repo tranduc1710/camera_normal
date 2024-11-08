@@ -1,3 +1,11 @@
+## 2.2.1
+
+* Upgrade image
+
+## 2.2.0
+
+* Upgrade select album when select image
+
 ## 2.1.2
 
 * Fix bug select image and shimmer load image

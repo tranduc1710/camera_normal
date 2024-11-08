@@ -2,7 +2,7 @@ name: camera_normal
 description: "Integrates functions such as camera, photos from gallery, QR scanning"
 repository: https://github.com/tranduc1710/camera_normal
 issue_tracker: https://github.com/tranduc1710/camera_normal/issues
-version: 2.1.2
+version: 2.2.1
 
 platforms:
   android:
@@ -29,7 +29,7 @@ dependencies:
   synchronized: 3.1.0+1
   path_provider: 2.1.2
   google_mlkit_barcode_scanning: 0.10.0
-  image: 4.1.7
+  image: 4.2.0
 
 dev_dependencies:
   flutter_test:
