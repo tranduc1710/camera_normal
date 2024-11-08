@@ -5,8 +5,19 @@ class SelectImage {
   final streamList = StreamController<List<File>>();
   final lock = Lock();
   List<File> listPhoto = [];
+  ValueNotifier<String> albumName = ValueNotifier("All");
+  AssetPathEntity? albumSelected;
+  final PMFilter filter = FilterOptionGroup(
+    orders: [
+      const OrderOption(
+        type: OrderOptionType.createDate,
+        asc: false,
+      ),
+    ],
+  );
 
   var isLimitPhoto = false;
+  bool isOpenCamera = false;
 
   SelectImage([int limit = 30]) {
     scrollController.addListener(() async {
@@ -32,18 +43,10 @@ class SelectImage {
   }
 
   Stream<File> getListPhoto({int page = 0, int limit = 1}) async* {
-    final lstPhoto = await PhotoManager.getAssetListPaged(
+    if (albumSelected == null) return;
+    final lstPhoto = await albumSelected!.getAssetListPaged(
       page: page,
-      pageCount: limit,
-      type: RequestType.image,
-      filterOption: FilterOptionGroup(
-        orders: [
-          const OrderOption(
-            asc: false,
-            type: OrderOptionType.createDate,
-          ),
-        ],
-      ),
+      size: limit,
     );
 
     if (lstPhoto.isEmpty) {
@@ -71,6 +74,12 @@ class SelectImage {
     int limit = 30,
     bool hasConfirm = true,
   }) async {
+    final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
+      type: RequestType.image,
+      filterOption: filter,
+    );
+    albumSelected = albums.firstOrNull;
+    albumName.value = albumSelected?.name ?? "All";
     final size = MediaQuery.of(contextParent).size;
     await PhotoManager.clearFileCache();
 
@@ -105,8 +114,9 @@ class SelectImage {
             ),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(
-                20,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
               ),
               boxShadow: [
                 BoxShadow(
@@ -120,16 +130,102 @@ class SelectImage {
               color: Colors.transparent,
               child: Column(
                 children: [
-                  Center(
-                    child: Container(
-                      height: 4,
-                      width: size.width * .2,
-                      margin: const EdgeInsets.only(top: 10, bottom: 15),
-                      decoration: BoxDecoration(
-                        color: Colors.grey,
-                        borderRadius: BorderRadius.circular(10),
+                  Stack(
+                    children: [
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: InkWell(
+                          onTap: () => Navigator.pop(context),
+                          child: const Padding(
+                            padding: EdgeInsets.only(left: 15, top: 20),
+                            child: Text(
+                              "Close",
+                              style: TextStyle(color: Color(0xffF76F01), fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      Align(
+                        alignment: Alignment.center,
+                        child: PopupMenuButton<AssetPathEntity>(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          offset: const Offset(0, 0),
+                          constraints: const BoxConstraints(maxHeight: 300),
+                          position: PopupMenuPosition.under,
+                          itemBuilder: (context) => [
+                            ...List.generate(albums.length, (index) {
+                              final item = albums[index];
+                              return PopupMenuItem(
+                                value: item,
+                                child: SizedBox(width: 150, child: Text(item.name)),
+                              );
+                            }),
+                          ],
+                          onSelected: (AssetPathEntity value) {
+                            albumSelected = value;
+                            albumName.value = value.name;
+                            listPhoto.clear();
+                            streamList.sink.add(listPhoto);
+                            isLimitPhoto = false;
+                            getListPhoto(limit: 30).listen(
+                              (value) {
+                                if (streamList.isClosed) return;
+                                listPhoto.add(value);
+                                streamList.sink.add(listPhoto);
+                              },
+                            );
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            height: 45,
+                            width: 200,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(width: 30),
+                                Expanded(
+                                  child: ValueListenableBuilder(
+                                    valueListenable: albumName,
+                                    builder: (context, name, child) => Container(
+                                      constraints: const BoxConstraints(maxWidth: 150),
+                                      child: Text(
+                                        name,
+                                        maxLines: 2,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_drop_down,
+                                  size: 30,
+                                  color: Colors.grey,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: InkWell(
+                          onTap: () {
+                            isOpenCamera = true;
+                            Navigator.pop(context);
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 15, top: 15),
+                            child: Icon(
+                              Icons.camera_alt,
+                              size: 30,
+                              color: Color(0xffF76F01),
+                            ),
+                          ),
+                        ),
+                      )
+                    ],
                   ),
                   Expanded(
                     child: StreamBuilder(
@@ -178,7 +274,7 @@ class SelectImage {
                                     repeat: ImageRepeat.noRepeat,
                                     scale: .1,
                                     filterQuality: FilterQuality.low,
-                                    cacheHeight: (size.width * .9).toInt(),
+                                    cacheWidth: 200,
                                     frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
                                       if (frame == null) {
                                         return const Placeholder().shimmer(size, true);
@@ -209,16 +305,15 @@ class SelectImage {
           child: child,
         );
       },
-      // constraints: BoxConstraints(
-      //   maxHeight: size.height * .8,
-      // ),
-      // backgroundColor: Colors.transparent,
-      // enableDrag: true,
     );
-    // .closed;
 
     scrollController.dispose();
     streamList.close();
+
+    if (isOpenCamera) {
+      final valueImage = await CameraNormal().show(contextParent, const CameraLanguage());
+      return valueImage;
+    }
 
     if (hasConfirm && contextParent.mounted && pathChoice is String) {
       final result = await DialogConfirmImage(contextParent, language).show(pathChoice!, size);
@@ -229,8 +324,7 @@ class SelectImage {
   }
 
   Future<bool> _getPermissionImage() async {
-    final PermissionState ps =
-        await PhotoManager.requestPermissionExtend(); // the method can use optional param `permission`.
+    final PermissionState ps = await PhotoManager.requestPermissionExtend(); // the method can use optional param `permission`.
     if (ps.isAuth) {
       return true;
     } else if (ps.hasAccess) {
@@ -238,8 +332,6 @@ class SelectImage {
     } else if (ps == PermissionState.denied) {
       return true;
     }
-    // Limited(iOS) or Rejected, use `==` for more precise judgements.
-    // You can call `PhotoManager.openSetting()` to open settings for further steps.
     return false;
   }
 }
