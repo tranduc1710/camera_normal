@@ -43,11 +43,15 @@ class SelectImage {
   }
 
   Stream<File> getListPhoto({int page = 0, int limit = 1}) async* {
-    if (albumSelected == null) return;
-    final lstPhoto = await albumSelected!.getAssetListPaged(
-      page: page,
-      size: limit,
-    );
+    final lstPhoto = await (albumSelected?.getAssetListPaged(
+          page: page,
+          size: limit,
+        ) ??
+        PhotoManager.getAssetListPaged(
+          page: page,
+          pageCount: limit,
+          filterOption: filter,
+        ));
 
     if (lstPhoto.isEmpty) {
       isLimitPhoto = true;
@@ -78,7 +82,7 @@ class SelectImage {
       type: RequestType.image,
       filterOption: filter,
     );
-    albumSelected = albums.firstOrNull;
+    albumSelected = albums.firstOrNull ?? AssetPathEntity(id: '', name: 'All');
     albumName.value = albumSelected?.name ?? "All";
     final size = MediaQuery.of(contextParent).size;
     await PhotoManager.clearFileCache();

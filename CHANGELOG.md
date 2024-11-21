@@ -1,3 +1,7 @@
+## 2.2.2
+
+* fix get image on first
+
 ## 2.2.1
 
 * Upgrade image
