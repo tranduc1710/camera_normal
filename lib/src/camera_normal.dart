@@ -1,9 +1,10 @@
 part of '../camera_custom.dart';
 
 class CameraNormal extends StatefulWidget {
-  CameraLanguage language = CameraLanguage();
+  final bool showChoiceImage;
+  CameraLanguage language = const CameraLanguage();
 
-  CameraNormal({super.key});
+  CameraNormal({super.key, this.showChoiceImage = true});
 
   Future<String?> show(BuildContext context, [CameraLanguage? language]) async {
     if (language != null) {
@@ -50,12 +51,12 @@ class _CameraNormalState extends State<CameraNormal> {
 
   @override
   void dispose() {
-    super.dispose();
     controller?.dispose();
     notiBtnTake.dispose();
     notiPathRecent.dispose();
     notiFlashMode.dispose();
     PhotoManager.clearFileCache();
+    super.dispose();
   }
 
   @override
@@ -163,33 +164,37 @@ class _CameraNormalState extends State<CameraNormal> {
                 child: Container(
                   width: sizeBtn,
                   height: sizeBtn,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                      width: 1,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(50),
-                    child: ValueListenableBuilder(
-                      valueListenable: notiPathRecent,
-                      builder: (context, value, child) {
-                        if (value.isEmpty) {
-                          return const Icon(Icons.image_outlined).shimmer(
-                            size,
-                            true,
-                          );
-                        }
-                        return Image.file(
-                          File(value),
-                          fit: BoxFit.cover,
-                          width: sizeBtn,
-                          height: sizeBtn,
-                        );
-                      },
-                    ),
-                  ),
+                  decoration: widget.showChoiceImage
+                      ? BoxDecoration(
+                          borderRadius: BorderRadius.circular(50),
+                          border: Border.all(
+                            width: 1,
+                            color: Colors.grey,
+                          ),
+                        )
+                      : null,
+                  child: widget.showChoiceImage
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(50),
+                          child: ValueListenableBuilder(
+                            valueListenable: notiPathRecent,
+                            builder: (context, value, child) {
+                              if (value.isEmpty) {
+                                return const Icon(Icons.image_outlined).shimmer(
+                                  size,
+                                  true,
+                                );
+                              }
+                              return Image.file(
+                                File(value),
+                                fit: BoxFit.cover,
+                                width: sizeBtn,
+                                height: sizeBtn,
+                              );
+                            },
+                          ),
+                        )
+                      : const SizedBox(),
                 ),
               ),
             ),
@@ -316,8 +321,7 @@ class _CameraNormalState extends State<CameraNormal> {
   }
 
   Future<bool> getPermissionImage() async {
-    final PermissionState ps =
-        await PhotoManager.requestPermissionExtend(); // the method can use optional param `permission`.
+    final PermissionState ps = await PhotoManager.requestPermissionExtend(); // the method can use optional param `permission`.
     if (ps.isAuth) {
       return true;
     } else if (ps.hasAccess) {

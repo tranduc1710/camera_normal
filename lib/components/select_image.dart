@@ -95,11 +95,15 @@ class SelectImage {
       msg = language.noLibraryAccess;
     }
 
-    getListPhoto(page: 0, limit: limit).listen(
-      (value) {
-        if (streamList.isClosed) return;
-        listPhoto.add(value);
-        streamList.sink.add(listPhoto);
+    WidgetsFlutterBinding.ensureInitialized().addPostFrameCallback(
+      (timeStamp) {
+        getListPhoto(page: 0, limit: limit).listen(
+          (value) {
+            if (streamList.isClosed) return;
+            listPhoto.add(value);
+            streamList.sink.add(listPhoto);
+          },
+        );
       },
     );
 
