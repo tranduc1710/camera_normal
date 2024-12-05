@@ -304,8 +304,10 @@ class _CameraNormalState extends State<CameraNormal> {
 
   Future<void> initCamera([CameraDescription? description]) async {
     _cameras = await availableCameras();
-    await PhotoManager.clearFileCache();
-    await getPhoto();
+    if (widget.showChoiceImage) {
+      await PhotoManager.clearFileCache();
+      await getPhoto();
+    }
     pathSaveFile = (await getApplicationDocumentsDirectory()).path;
     return;
   }
