@@ -50,13 +50,12 @@ class _CameraNormalState extends State<CameraNormal> {
   }
 
   @override
-  void dispose() {
-    controller?.dispose();
+  void dispose() async {
+    super.dispose();
     notiBtnTake.dispose();
     notiPathRecent.dispose();
     notiFlashMode.dispose();
-    PhotoManager.clearFileCache();
-    super.dispose();
+    await PhotoManager.clearFileCache();
   }
 
   @override
@@ -264,17 +263,20 @@ class _CameraNormalState extends State<CameraNormal> {
       if (xFile != null) {
         notiBtnTake.value = false;
         if (mounted) {
-          final result = await DialogConfirmImage(context, widget.language).show(xFile.path, size);
-
-          if (result is String && mounted) {
-            Navigator.pop(context, result);
-          }
+          DialogConfirmImage(context, widget.language).show(xFile.path, size).then(
+            (result) {
+              if (result is String && mounted) {
+                Navigator.pop(context, result);
+              }
+            },
+          );
         }
       }
     } catch (e, s) {
       print(e);
       print(s);
     }
+    await Future.delayed(const Duration(milliseconds: 500));
     await controller?.resumePreview();
     notiBtnTake.value = false;
   }

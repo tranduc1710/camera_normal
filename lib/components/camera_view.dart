@@ -37,15 +37,6 @@ class _CameraState extends State<CameraView> {
   var contentError = '';
 
   @override
-  void dispose() async {
-    if (widget.startImageStream != null) {
-      await cameraController?.stopImageStream();
-    }
-    cameraController?.dispose();
-    super.dispose();
-  }
-
-  @override
   void reassemble() {
     super.reassemble();
     if (Platform.isAndroid) {
@@ -57,37 +48,45 @@ class _CameraState extends State<CameraView> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: Future(() => initCamera(context)),
-      builder: (context, snapshot) {
-        final size = MediaQuery.of(context).size;
-
-        if (snapshot.connectionState != ConnectionState.done || cameraController == null) return (widget.buildLoading?.call() ?? buildLoadingCamera());
-
-        if (contentError.isNotEmpty) return buildError();
-
-        if (!widget.isFullScreen) {
-          return Center(
-            child: CameraPreview(
-              cameraController!,
-              child: widget.child,
-            ),
-          );
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) async {
+        if (widget.startImageStream != null) {
+          await cameraController?.stopImageStream();
         }
+        await cameraController?.dispose();
+      },
+      child: FutureBuilder(
+        future: initCamera(context),
+        builder: (context, snapshot) {
+          final size = MediaQuery.of(context).size;
 
-        return Center(
-          child: Transform.scale(
-            scale: size.aspectRatio + 1,
-            child: AspectRatio(
-              aspectRatio: (cameraController?.value.previewSize?.height ?? 4) / (cameraController?.value.previewSize?.width ?? 3),
+          if (snapshot.connectionState != ConnectionState.done || cameraController == null) return (widget.buildLoading?.call() ?? buildLoadingCamera());
+
+          if (contentError.isNotEmpty) return buildError();
+
+          if (!widget.isFullScreen) {
+            return Center(
               child: CameraPreview(
                 cameraController!,
                 child: widget.child,
               ),
+            );
+          }
+
+          return Center(
+            child: Transform.scale(
+              scale: size.aspectRatio + 1,
+              child: AspectRatio(
+                aspectRatio: (cameraController?.value.previewSize?.height ?? 4) / (cameraController?.value.previewSize?.width ?? 3),
+                child: CameraPreview(
+                  cameraController!,
+                  child: widget.child,
+                ),
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

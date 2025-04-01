@@ -12,9 +12,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:image/image.dart' as image;
+import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:synchronized/synchronized.dart';
 
 export 'package:camera/camera.dart';
 export 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';

@@ -2,7 +2,7 @@ name: camera_normal
 description: "Integrates functions such as camera, photos from gallery, QR scanning"
 repository: https://github.com/tranduc1710/camera_normal
 issue_tracker: https://github.com/tranduc1710/camera_normal/issues
-version: 2.2.5
+version: 2.3.0
 
 platforms:
   android:
@@ -22,20 +22,20 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.6
-  camera: 0.10.5+9
-  video_player: 2.8.3
-  photo_manager: 3.6.1
-  synchronized: 3.1.0+1
-  path_provider: 2.1.2
-  google_mlkit_barcode_scanning: 0.10.0
-  image: 4.2.0
+  cupertino_icons: ^1.0.8
+  camera: ^0.11.1
+  photo_manager: ^3.6.4
+  path_provider: ^2.1.5
+  google_mlkit_barcode_scanning: ^0.14.1
+  google_mlkit_commons: ^0.11.0
+  image: ^4.5.4
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_lints: ^3.0.0
+  flutter_lints: ^5.0.0
 
 flutter:
 
