@@ -29,8 +29,9 @@ class CameraNormal extends StatefulWidget {
 }
 
 class _CameraNormalState extends State<CameraNormal> {
-  late List<CameraDescription> _cameras;
-  CameraController? controller;
+  PhotoCameraState? photoCameraState;
+  late CameraState cameraState;
+
   final scaffoldState = GlobalKey<ScaffoldState>();
 
   final notiBtnTake = ValueNotifier<bool>(false);
@@ -42,12 +43,7 @@ class _CameraNormalState extends State<CameraNormal> {
   var pathSaveFile = '';
 
   List<File> listPhoto = [];
-
-  @override
-  void initState() {
-    super.initState();
-    initCamera();
-  }
+  final sizeBtn = 55.0;
 
   @override
   void dispose() async {
@@ -66,32 +62,131 @@ class _CameraNormalState extends State<CameraNormal> {
     return Scaffold(
       key: scaffoldState,
       backgroundColor: Colors.black,
-      body: Column(
-        children: [
-          // buildTop(context, size, padding),
-          Expanded(
-            child: Stack(
-              children: [
-                CameraView(
-                  onInit: (controller) {
-                    this.controller = controller;
-                  },
-                  language: widget.language,
-                  imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
-                  child: GestureDetector(
-                    onTapDown: (details) => onFocusCamera(size, details),
-                  ),
-                ),
-                buildTop(context, size, padding),
-                Positioned(
-                  width: size.width,
-                  bottom: 0,
-                  child: buildBottom(context, size, padding),
-                ),
-              ],
+      body: CameraAwesomeBuilder.awesome(
+        previewFit: CameraPreviewFit.cover,
+        onMediaCaptureEvent: (event) {
+          switch ((event.status, event.isPicture, event.isVideo)) {
+            case (MediaCaptureStatus.capturing, true, false):
+              debugPrint('Capturing picture...');
+            case (MediaCaptureStatus.success, true, false):
+              event.captureRequest.when(
+                single: (single) {
+                  debugPrint('Picture saved: ${single.file?.path}');
+                  onTakePicture(context, size, event);
+                },
+              );
+            default:
+              debugPrint('Unknown event: $event');
+          }
+        },
+        // onMediaCaptureEvent: (mediaCapture) => onTakePicture(context, size, mediaCapture),
+        topActionsBuilder: (state) => AwesomeTopActions(
+          state: state,
+          children: [
+            IconButton(
+              onPressed: Navigator.of(context).pop,
+              icon: const Icon(
+                Icons.arrow_back_ios_new_outlined,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const Spacer(),
+            // AwesomeFlashButton(
+            //   state: state,
+            //   iconBuilder: (flashMode) {
+            //     switch (flashMode) {
+            //       case FlashMode.none:
+            //         return const Icon(Icons.flash_off);
+            //       case FlashMode.on:
+            //         return const Icon(Icons.flash_on);
+            //       case FlashMode.auto:
+            //         return const Icon(Icons.flash_auto);
+            //       case FlashMode.always:
+            //         return const Icon(Icons.flashlight_on);
+            //     }
+            //   },
+            //   onFlashTap: (sensorConfig, flashMode) {
+            //     setFlashMode(sensorConfig, flashMode);
+            //
+            //     sensorConfig.setFlashMode(flashMode);
+            //   },
+            // ),
+          ],
+        ),
+        bottomActionsBuilder: (state) => AwesomeBottomActions(
+          state: state,
+          left: GestureDetector(
+            onTap: () => onShowRecentImage(context, size),
+            child: Center(
+              child: Container(
+                width: sizeBtn,
+                height: sizeBtn,
+                decoration: widget.showChoiceImage
+                    ? BoxDecoration(
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(
+                          width: 1,
+                          color: Colors.grey,
+                        ),
+                      )
+                    : null,
+                child: widget.showChoiceImage
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(50),
+                        child: ValueListenableBuilder(
+                          valueListenable: notiPathRecent,
+                          builder: (context, value, child) {
+                            if (value.isEmpty) {
+                              return const Icon(Icons.image_outlined).shimmer(
+                                size,
+                                true,
+                              );
+                            }
+                            return Image.file(
+                              File(value),
+                              fit: BoxFit.cover,
+                              width: sizeBtn,
+                              height: sizeBtn,
+                            );
+                          },
+                        ),
+                      )
+                    : const SizedBox(),
+              ),
             ),
           ),
-        ],
+          right: AwesomeCameraSwitchButton(
+            state: state,
+            scale: 1.0,
+            onSwitchTap: (state) {
+              state.switchCameraSensor(
+                aspectRatio: state.sensorConfig.aspectRatio,
+              );
+            },
+          ),
+        ),
+        saveConfig: SaveConfig.photo(
+          pathBuilder: (sensors)async {
+            final Directory extDir = await getTemporaryDirectory();
+            final testDir = await Directory(
+              '${extDir.path}/cameranormal',
+            ).create(recursive: true);
+            if (sensors.length == 1) {
+              final String filePath =
+                  '${testDir.path}/image.jpg';
+              return SingleCaptureRequest(filePath, sensors.first);
+            }
+            // Separate pictures taken with front and back camera
+            return MultipleCaptureRequest(
+              {
+                for (final sensor in sensors)
+                  sensor:
+                  '${testDir.path}/${sensor.position == SensorPosition.front ? 'front_' : "back_"}${DateTime.now().millisecondsSinceEpoch}.jpg',
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -102,51 +197,12 @@ class _CameraNormalState extends State<CameraNormal> {
       padding: EdgeInsets.only(top: padding.top),
       color: Colors.black26,
       child: Row(
-        children: [
-          IconButton(
-            onPressed: Navigator.of(context).pop,
-            icon: const Icon(
-              Icons.arrow_back_ios_new_outlined,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            onPressed: setFlashMode,
-            icon: ValueListenableBuilder(
-                valueListenable: notiFlashMode,
-                builder: (context, value, child) {
-                  switch (value) {
-                    case FlashMode.always:
-                      return const Icon(
-                        Icons.flash_on,
-                        color: Colors.white,
-                        size: 20,
-                      );
-                    case FlashMode.off:
-                      return const Icon(
-                        Icons.flash_off,
-                        color: Colors.white,
-                        size: 20,
-                      );
-                    default:
-                      return const Icon(
-                        Icons.flash_auto,
-                        color: Colors.white,
-                        size: 20,
-                      );
-                  }
-                }),
-          ),
-        ],
+        children: [],
       ),
     );
   }
 
   Container buildBottom(BuildContext context, Size size, EdgeInsets padding) {
-    const sizeBtn = 55.0;
-
     return Container(
       color: Colors.black26,
       width: size.width,
@@ -156,142 +212,62 @@ class _CameraNormalState extends State<CameraNormal> {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => onShowRecentImage(context, size),
-              child: Center(
-                child: Container(
-                  width: sizeBtn,
-                  height: sizeBtn,
-                  decoration: widget.showChoiceImage
-                      ? BoxDecoration(
-                          borderRadius: BorderRadius.circular(50),
-                          border: Border.all(
-                            width: 1,
-                            color: Colors.grey,
-                          ),
-                        )
-                      : null,
-                  child: widget.showChoiceImage
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(50),
-                          child: ValueListenableBuilder(
-                            valueListenable: notiPathRecent,
-                            builder: (context, value, child) {
-                              if (value.isEmpty) {
-                                return const Icon(Icons.image_outlined).shimmer(
-                                  size,
-                                  true,
-                                );
-                              }
-                              return Image.file(
-                                File(value),
-                                fit: BoxFit.cover,
-                                width: sizeBtn,
-                                height: sizeBtn,
-                              );
-                            },
-                          ),
-                        )
-                      : const SizedBox(),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: GestureDetector(
-                onTap: () => onTakePicture(context, size),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white38,
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  width: sizeBtn + 5,
-                  height: sizeBtn + 5,
-                  child: ValueListenableBuilder(
-                    valueListenable: notiBtnTake,
-                    builder: (BuildContext context, value, Widget? child) {
-                      if (value) {
-                        return const Center(
-                          child: SizedBox(
-                            width: sizeBtn - 10,
-                            height: sizeBtn - 10,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          ),
-                        );
-                      }
-                      return const Icon(
-                        Icons.camera_alt_outlined,
-                        color: Colors.white,
-                        size: sizeBtn / 2,
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: GestureDetector(
-                onTap: onSwitchCamera,
-                child: const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Icon(
-                    Icons.flip_camera_ios,
-                    color: Colors.white,
-                    size: 30,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          // Expanded(
+          //   child: Center(
+          //     child: GestureDetector(
+          //       onTap: onSwitchCamera,
+          //       child: const Padding(
+          //         padding: EdgeInsets.all(8.0),
+          //         child: Icon(
+          //           Icons.flip_camera_ios,
+          //           color: Colors.white,
+          //           size: 30,
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );
   }
 
-  void onTakePicture(BuildContext context, Size size) async {
+  void onTakePicture(BuildContext context, Size size, MediaCapture mediaCapture) async {
     if (notiBtnTake.value) return;
     notiBtnTake.value = true;
-    try {
-      final xFile = await controller?.takePicture();
-      await controller?.pausePreview();
-      if (xFile != null) {
-        notiBtnTake.value = false;
-        if (mounted) {
-          DialogConfirmImage(context, widget.language).show(xFile.path, size).then(
-            (result) {
-              if (result is String && mounted) {
-                Navigator.pop(context, result);
-              }
-            },
-          );
-        }
+    // try {
+    print("hello:  ${mediaCapture.captureRequest.path}");
+    if (mediaCapture.captureRequest.path != null) {
+      notiBtnTake.value = false;
+      if (mounted) {
+        DialogConfirmImage(context, widget.language).show(mediaCapture.captureRequest.path!, size).then(
+          (result) {
+            if (result is String && mounted) {
+              Navigator.pop(context, result);
+            }
+          },
+        );
       }
-    } catch (e, s) {
-      print(e);
-      print(s);
     }
-    await Future.delayed(const Duration(milliseconds: 500));
-    await controller?.resumePreview();
+    // } catch (e, s) {
+    //   print(e);
+    //   print(s);
+    // }
     notiBtnTake.value = false;
   }
 
-  void onSwitchCamera() {
-    var description = _cameras[0];
-    if (_cameras.length > 1 && isBackCamera) {
-      description = _cameras[1];
-      isBackCamera = false;
-    } else {
-      isBackCamera = true;
-    }
-    controller?.setDescription(description);
-    controller?.setZoomLevel(1);
-  }
+  //
+  // void onSwitchCamera() {
+  //   var description = _cameras[0];
+  //   if (_cameras.length > 1 && isBackCamera) {
+  //     description = _cameras[1];
+  //     isBackCamera = false;
+  //   } else {
+  //     isBackCamera = true;
+  //   }
+  //   controller?.setDescription(description);
+  //   controller?.setZoomLevel(1);
+  // }
 
   void onShowRecentImage(BuildContext context, Size size) async {
     if (notiBtnTake.value) return;
@@ -304,15 +280,15 @@ class _CameraNormalState extends State<CameraNormal> {
     }
   }
 
-  Future<void> initCamera([CameraDescription? description]) async {
-    _cameras = await availableCameras();
-    if (widget.showChoiceImage) {
-      await PhotoManager.clearFileCache();
-      await getPhoto();
-    }
-    pathSaveFile = (await getApplicationDocumentsDirectory()).path;
-    return;
-  }
+  // Future<void> initCamera([CameraDescription? description]) async {
+  //   _cameras = await availableCameras();
+  //   if (widget.showChoiceImage) {
+  //     await PhotoManager.clearFileCache();
+  //     await getPhoto();
+  //   }
+  //   pathSaveFile = (await getApplicationDocumentsDirectory()).path;
+  //   return;
+  // }
 
   Future<void> getPhoto() async {
     final resultPermission = await getPermissionImage();
@@ -338,21 +314,14 @@ class _CameraNormalState extends State<CameraNormal> {
     return false;
   }
 
-  void onFocusCamera(Size size, TapDownDetails details) async {
-    final dx = details.localPosition.dx / size.width;
-    final dy = details.localPosition.dy / size.height;
-    await controller?.setFocusMode(FocusMode.locked);
-    controller?.setFocusPoint(Offset(dx, dy));
-  }
-
-  void setFlashMode() async {
-    if (notiFlashMode.value == FlashMode.off) {
-      notiFlashMode.value = FlashMode.auto;
-    } else if (notiFlashMode.value == FlashMode.auto) {
-      notiFlashMode.value = FlashMode.always;
-    } else {
-      notiFlashMode.value = FlashMode.off;
-    }
-    await controller?.setFlashMode(notiFlashMode.value);
+  // void onFocusCamera(Size size, TapDownDetails details) async {
+  //   final dx = details.localPosition.dx / size.width;
+  //   final dy = details.localPosition.dy / size.height;
+  //   await controller?.setFocusMode(FocusMode.locked);
+  //   controller?.setFocusPoint(Offset(dx, dy));
+  // }
+  //
+  void setFlashMode(SensorConfig sensorConfig, FlashMode flashMode) async {
+    notiFlashMode.value = flashMode;
   }
 }
