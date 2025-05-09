@@ -63,7 +63,28 @@ class _CameraNormalState extends State<CameraNormal> {
       key: scaffoldState,
       backgroundColor: Colors.black,
       body: CameraAwesomeBuilder.awesome(
-        previewFit: CameraPreviewFit.cover,
+        previewFit: CameraPreviewFit.contain,
+        saveConfig: SaveConfig.photo(
+          pathBuilder: (sensors)async {
+            final Directory extDir = await getTemporaryDirectory();
+            final testDir = await Directory(
+              '${extDir.path}/cameranormal',
+            ).create(recursive: true);
+            if (sensors.length == 1) {
+              final String filePath =
+                  '${testDir.path}/image.jpg';
+              return SingleCaptureRequest(filePath, sensors.first);
+            }
+            // Separate pictures taken with front and back camera
+            return MultipleCaptureRequest(
+              {
+                for (final sensor in sensors)
+                  sensor:
+                  '${testDir.path}/${sensor.position == SensorPosition.front ? 'front_' : "back_"}${DateTime.now().millisecondsSinceEpoch}.jpg',
+              },
+            );
+          },
+        ),
         onMediaCaptureEvent: (event) {
           switch ((event.status, event.isPicture, event.isVideo)) {
             case (MediaCaptureStatus.capturing, true, false):
@@ -166,27 +187,7 @@ class _CameraNormalState extends State<CameraNormal> {
             },
           ),
         ),
-        saveConfig: SaveConfig.photo(
-          pathBuilder: (sensors)async {
-            final Directory extDir = await getTemporaryDirectory();
-            final testDir = await Directory(
-              '${extDir.path}/cameranormal',
-            ).create(recursive: true);
-            if (sensors.length == 1) {
-              final String filePath =
-                  '${testDir.path}/image.jpg';
-              return SingleCaptureRequest(filePath, sensors.first);
-            }
-            // Separate pictures taken with front and back camera
-            return MultipleCaptureRequest(
-              {
-                for (final sensor in sensors)
-                  sensor:
-                  '${testDir.path}/${sensor.position == SensorPosition.front ? 'front_' : "back_"}${DateTime.now().millisecondsSinceEpoch}.jpg',
-              },
-            );
-          },
-        ),
+
       ),
     );
   }
