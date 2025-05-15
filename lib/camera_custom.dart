@@ -21,6 +21,7 @@ import 'components/barcode_preview_overlay.dart';
 
 // export 'package:camera/camera.dart';
 export 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
+export 'package:camerawesome/camerawesome_plugin.dart';
 
 // part 'components/camera_view.dart';
 part 'components/dialog/dialog_alert.dart';
